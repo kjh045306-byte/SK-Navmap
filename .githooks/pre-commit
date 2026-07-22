@@ -1,0 +1,11 @@
+#!/bin/sh
+# 캐시 대상 정적 자산(html/css/js/manifest/데이터)이 이번 커밋에 포함되면
+# sw.js의 CACHE_NAME에 커밋 해시를 자동으로 반영해 서비스워커 캐시를 무효화한다.
+# (sw.js 파일 내용 자체는 안 바뀌더라도 CACHE_NAME이 바뀌므로 브라우저가 새 버전으로 인식한다)
+
+CHANGED=$(git diff --cached --name-only)
+echo "$CHANGED" | grep -qE '^(index\.html|css/|js/|manifest\.json|navmap_data\.json)' || exit 0
+
+HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "init")
+sed -i "s/var CACHE_NAME = '[^']*';/var CACHE_NAME = 'sk-navmap-$HASH';/" sw.js
+git add sw.js
