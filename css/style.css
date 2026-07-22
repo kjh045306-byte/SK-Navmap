@@ -83,15 +83,21 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 }
 .action-row{display:flex;gap:10px;align-items:flex-end}
 .action-main{
-  flex:1;background:rgba(13,21,32,0.92);border:1px solid var(--border);
+  flex:1;min-width:0;background:rgba(13,21,32,0.92);border:1px solid var(--border);
   border-radius:16px;padding:10px 14px;display:flex;align-items:center;gap:10px;
   cursor:pointer;backdrop-filter:blur(12px);
 }
-.action-main-icon{font-size:20px}
+.action-main-icon{font-size:20px;flex-shrink:0}
 .action-main-text{flex:1;min-width:0}
 .action-main-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .action-main-sub{font-size:11px;color:var(--dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.action-main-arrow{color:var(--dim);font-size:18px}
+.action-main-arrow{color:var(--dim);font-size:18px;flex-shrink:0}
+.action-main-clear{
+  flex-shrink:0;width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--dim);
+  font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.action-main-clear:active{background:rgba(255,85,85,0.15);border-color:rgba(255,85,85,0.4);color:#ff5555}
 
 .action-fab{
   width:52px;height:52px;border-radius:16px;border:none;

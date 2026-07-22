@@ -157,7 +157,16 @@
     $id('result-bar').classList.add('show');
     $id('route-display').textContent = r.depName + ' → ' + r.arrName;
     $id('route-sub').textContent = r.distNm.toFixed(1) + 'NM · ' + r.t130.toFixed(1) + '분 · 연료 ' + Math.round(r.fuel) + 'LBS';
+    $id('route-clear-btn').style.display = 'flex';
     closeSheet('route-sheet');
+  }
+
+  function clearRouteSelection() {
+    MapView.clearSelectedRoute();
+    $id('result-bar').classList.remove('show');
+    $id('route-display').textContent = '항법경로 선택';
+    $id('route-sub').textContent = '출발지 · 도착지를 선택하세요';
+    $id('route-clear-btn').style.display = 'none';
   }
 
   /* ── 경로 검색 시트 ── */
@@ -354,6 +363,10 @@
     $id('add-fab').addEventListener('click', function () {
       populatePointSelects();
       openSheet('add-menu');
+    });
+    $id('route-clear-btn').addEventListener('click', function (e) {
+      e.stopPropagation();
+      clearRouteSelection();
     });
 
     // 공통: 오버레이 클릭/닫기버튼으로 시트 닫기

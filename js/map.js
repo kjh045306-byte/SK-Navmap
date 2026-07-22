@@ -48,11 +48,9 @@
       zoom: 7,
       mapTypeId: 'hybrid',
       disableDefaultUI: true,
-      zoomControl: true,
-      zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
+      zoomControl: false,
       gestureHandling: 'greedy',
-      clickableIcons: false,
-      backgroundColor: '#0a0e14'
+      clickableIcons: false
     });
     map.addListener('click', function (e) {
       if (mapClickHandler) mapClickHandler({ lat: e.latLng.lat(), lng: e.latLng.lng() });
