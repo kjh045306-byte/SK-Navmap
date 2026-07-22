@@ -70,6 +70,9 @@
         MapView.renderMarkers(UI.onMarkerClick);
         UI.init();
         hideLoading();
+        if (Data.orphanedOverlay.length) {
+          UI.toast('적용 안 된 로컬 수정사항 ' + Data.orphanedOverlay.length + '건 (자세한 내용은 콘솔 참고)');
+        }
       })
       .catch(function (err) {
         showFatalError(err);

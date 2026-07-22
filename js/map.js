@@ -5,7 +5,11 @@
   var map = null;
   var markers = { sk: [], land: [], wp: [] };
   var allRouteLines = []; // 전체 경로(초록, 얇음) — 레이어 ON시만 지도에 부착
-  var selectedPolyline = null;
+  var selectedPolyline = null; // 저장된 경로 선택 시(오렌지) — 레이어 설정과 무관하게 항상 표시
+  var draftPolyline = null; // 작성 중인(미저장) 경로 미리보기(노랑) — 레이어 설정과 무관하게 항상 표시
+  var viaMarkers = []; // 경로 작성 중 경유점 마커(드래그 가능)
+  var viaDragHandler = null;
+  var viaClickHandler = null;
   var mapClickHandler = null; // ui.js가 지도탭으로 좌표를 받을 때 설정
 
   function loadGoogleMaps(apiKey) {
@@ -40,6 +44,18 @@
       return { url: markerIconUrl('wp'), scaledSize: new google.maps.Size(16, 16), anchor: new google.maps.Point(8, 8) };
     }
     return { url: markerIconUrl(kind), scaledSize: new google.maps.Size(30, 30), anchor: new google.maps.Point(15, 15) };
+  }
+
+  function viaIcon(num) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26">' +
+      '<circle cx="13" cy="13" r="11" fill="#FFD700" stroke="#7a5c00" stroke-width="2"/>' +
+      '<text x="13" y="18" font-size="13" font-weight="900" text-anchor="middle" fill="#3a2a00" font-family="Arial,sans-serif">' + num + '</text>' +
+      '</svg>';
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(26, 26),
+      anchor: new google.maps.Point(13, 13)
+    };
   }
 
   function initMap(container) {
@@ -155,6 +171,60 @@
     map.fitBounds(bounds, 60);
   }
 
+  // ── 경로 작성 중 경유점 마커 (드래그로 이동, 탭하면 삭제 콜백) ──
+  function setViaPointCallbacks(onDrag, onClick) {
+    viaDragHandler = onDrag;
+    viaClickHandler = onClick;
+  }
+
+  function clearViaMarkers() {
+    viaMarkers.forEach(function (m) { m.setMap(null); });
+    viaMarkers = [];
+  }
+
+  function setViaPoints(points) {
+    clearViaMarkers();
+    points.forEach(function (p, i) {
+      var mk = new google.maps.Marker({
+        position: { lat: p.lat, lng: p.lng },
+        map: map,
+        icon: viaIcon(i + 1),
+        draggable: true,
+        zIndex: 20
+      });
+      mk.addListener('dragend', function (e) {
+        if (viaDragHandler) viaDragHandler(i, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+      });
+      mk.addListener('click', function () {
+        if (viaClickHandler) viaClickHandler(i);
+      });
+      viaMarkers.push(mk);
+    });
+  }
+
+  // ── 작성 중(미저장) 경로 미리보기 — 노란색, 레이어 설정과 무관하게 항상 표시 ──
+  function previewDraftRoute(coords) {
+    clearDraftRoute();
+    if (!coords || coords.length < 2) return;
+    draftPolyline = new google.maps.Polyline({
+      path: coords,
+      strokeColor: '#FFD700',
+      strokeWeight: 4,
+      strokeOpacity: 0.9,
+      icons: [{
+        icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 },
+        offset: '0',
+        repeat: '14px'
+      }],
+      map: map,
+      zIndex: 15
+    });
+  }
+
+  function clearDraftRoute() {
+    if (draftPolyline) { draftPolyline.setMap(null); draftPolyline = null; }
+  }
+
   function panToPoint(lat, lng, zoom) {
     map.panTo({ lat: lat, lng: lng });
     if (zoom) map.setZoom(zoom);
@@ -177,6 +247,11 @@
     panToPoint: panToPoint,
     setMapClickHandler: setMapClickHandler,
     clearMapClickHandler: clearMapClickHandler,
-    setMapType: setMapType
+    setMapType: setMapType,
+    setViaPointCallbacks: setViaPointCallbacks,
+    setViaPoints: setViaPoints,
+    clearViaMarkers: clearViaMarkers,
+    previewDraftRoute: previewDraftRoute,
+    clearDraftRoute: clearDraftRoute
   };
 })(window);

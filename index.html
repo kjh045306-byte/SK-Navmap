@@ -37,6 +37,11 @@
     <button class="pick-hint-btn" id="pick-hint-cancel">취소</button>
   </div>
 
+  <!-- 경유점 선택 중 목록 (지도 탭 모드에서도 순서/좌표 확인용) -->
+  <div class="via-pick-panel" id="via-pick-panel" style="display:none">
+    <div class="via-list" id="via-pick-list"></div>
+  </div>
+
   <!-- 상단 바 -->
   <div class="top-bar">
     <div class="top-inner">
@@ -98,7 +103,8 @@
         <div class="marker-type" id="m-type">—</div>
       </div>
       <div class="marker-header-btns">
-        <button class="icon-btn danger" id="marker-delete-btn" style="display:none" title="삭제">🗑️</button>
+        <button class="icon-btn" id="marker-edit-btn" title="수정">✏️</button>
+        <button class="icon-btn danger" id="marker-delete-btn" title="삭제">🗑️</button>
         <button class="icon-btn" id="marker-close-btn">✕</button>
       </div>
     </div>
@@ -300,6 +306,7 @@
           <div class="via-info-text">지도를 탭해 경유점을 추가합니다</div>
           <div class="via-info-count" id="ar-via-count">0개 선택됨</div>
         </div>
+        <div class="via-list" id="ar-via-list"></div>
         <div class="via-btn-row">
           <button class="btn-pick" id="ar-pick-via-btn">📍 지도에서 경유점 선택</button>
           <button class="btn-pick" id="ar-reset-via-btn">초기화</button>

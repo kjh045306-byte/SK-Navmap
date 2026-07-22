@@ -116,9 +116,9 @@ button,input,select,textarea{font-family:inherit;color:inherit}
   position:absolute;bottom:0;left:0;right:0;
   background:var(--panel);border-radius:20px 20px 0 0;border-top:1px solid var(--border);
   transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);
-  max-height:85vh;display:flex;flex-direction:column;pointer-events:auto;
+  max-height:85vh;display:flex;flex-direction:column;pointer-events:none;
 }
-.sheet.open .sheet-panel{transform:translateY(0)}
+.sheet.open .sheet-panel{transform:translateY(0);pointer-events:auto}
 .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 4px;flex-shrink:0}
 .sheet-title{font-size:16px;font-weight:700;padding:4px 18px 12px;color:#fff;flex-shrink:0}
 .sheet-bottom{height:calc(var(--safe-bottom) + 8px);flex-shrink:0}
@@ -164,6 +164,9 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .rc-time{font-size:10px;color:var(--dim);margin-top:2px}
 .rc-fav{background:none;border:none;font-size:18px;color:var(--dim);cursor:pointer;padding:4px;flex-shrink:0}
 .rc-fav.on{color:var(--gold)}
+.rc-actions{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.rc-icon-btn{background:none;border:none;font-size:14px;color:var(--dim);cursor:pointer;padding:3px}
+.rc-icon-btn.danger:active{color:#ff5555}
 
 /* ══════════════════════════ 마커 탭 시트 ══════════════════════════ */
 #marker-sheet .sheet-panel{max-height:65vh}
@@ -265,6 +268,24 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .via-btn-row{display:flex;gap:8px}
 .via-btn-row .btn-pick{flex:1;padding:10px;text-align:center}
 
+/* 경유점 목록 (작성 폼 안 + 지도 탭 모드 플로팅 패널 공용) */
+.via-list{margin-bottom:8px;max-height:160px;overflow-y:auto}
+.via-row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:7px 10px;margin-bottom:6px}
+.via-row-num{width:20px;height:20px;border-radius:50%;background:var(--gold);color:#3a2a00;
+  font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.via-row-coord{flex:1;font-size:11px;font-family:monospace;color:var(--text);min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.via-row-del{background:none;border:none;color:#ff5555;font-size:13px;cursor:pointer;padding:2px 4px;flex-shrink:0}
+
+/* 지도 탭으로 경유점 선택 중일 때 화면 상단에 뜨는 목록 패널 */
+.via-pick-panel{
+  position:absolute;top:64px;left:14px;right:14px;z-index:79;
+  background:rgba(13,21,32,0.92);border:1px solid var(--border);border-radius:14px;
+  padding:10px 10px 2px;backdrop-filter:blur(10px);
+}
+.via-pick-panel .via-row{background:rgba(255,255,255,0.06)}
+
 /* ══════════════════════════ 토스트 ══════════════════════════ */
 .toast{
   position:fixed;left:50%;bottom:calc(var(--safe-bottom) + 90px);transform:translate(-50%,20px);
@@ -295,4 +316,5 @@ button,input,select,textarea{font-family:inherit;color:inherit}
   .result-bar.show{transform:translate(-50%,0)}
   .pick-hint{max-width:640px;left:50%;transform:translate(-50%,-100%)}
   .pick-hint.show{transform:translate(-50%,0)}
+  .via-pick-panel{max-width:640px;left:50%;transform:translateX(-50%)}
 }
