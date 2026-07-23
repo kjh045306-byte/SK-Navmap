@@ -108,16 +108,23 @@
         <button class="icon-btn" id="marker-close-btn">✕</button>
       </div>
     </div>
-    <div class="fms-row">
-      <div class="fms-item">
-        <div class="fms-label">LAT</div>
-        <div class="fms-val" id="m-lat">—</div>
+    <div class="coord-block">
+      <div class="coord-row">
+        <div class="coord-tag">FMS</div>
+        <div class="coord-vals">
+          <span class="fms-val" id="m-fms-lat">—</span>
+          <span class="fms-val" id="m-fms-lng">—</span>
+        </div>
+        <button class="fms-copy" id="fms-copy-btn">📋</button>
       </div>
-      <div class="fms-item">
-        <div class="fms-label">LNG</div>
-        <div class="fms-val" id="m-lng">—</div>
+      <div class="coord-row">
+        <div class="coord-tag">DMS</div>
+        <div class="coord-vals">
+          <span class="fms-val" id="m-dms-lat">—</span>
+          <span class="fms-val" id="m-dms-lng">—</span>
+        </div>
+        <button class="fms-copy" id="dms-copy-btn">📋</button>
       </div>
-      <button class="fms-copy" id="fms-copy-btn">📋 복사</button>
     </div>
     <div class="related-title">관련 항법경로</div>
     <div class="related-scroll" id="related-routes"></div>

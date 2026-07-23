@@ -160,8 +160,11 @@
     $id('m-name').textContent = point.name;
     $id('m-type').textContent = typeLabel;
     var fms = Calc.toFMS(point.lat, point.lng);
-    $id('m-lat').textContent = fms.lat;
-    $id('m-lng').textContent = fms.lng;
+    var dms = Calc.toDMS(point.lat, point.lng);
+    $id('m-fms-lat').textContent = fms.lat;
+    $id('m-fms-lng').textContent = fms.lng;
+    $id('m-dms-lat').textContent = dms.lat;
+    $id('m-dms-lng').textContent = dms.lng;
 
     var related = Data.ROUTES.filter(function (r) {
       return r.depName === point.name || r.arrName === point.name;
@@ -544,17 +547,21 @@
 
     // 마커 시트
     $id('marker-close-btn').addEventListener('click', function () { closeSheet('marker-sheet'); });
-    $id('fms-copy-btn').addEventListener('click', function () {
-      var txt = $id('m-lat').textContent + ' ' + $id('m-lng').textContent;
-      var btn = $id('fms-copy-btn');
-      var orig = btn.textContent;
-      var done = function () { btn.textContent = '✅ 복사됨'; setTimeout(function () { btn.textContent = orig; }, 1500); };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(done).catch(function () { toast('복사에 실패했습니다'); });
-      } else {
-        toast('이 브라우저는 클립보드 복사를 지원하지 않습니다');
-      }
-    });
+    function bindCoordCopy(btnId, latId, lngId) {
+      $id(btnId).addEventListener('click', function () {
+        var txt = $id(latId).textContent + ' ' + $id(lngId).textContent;
+        var btn = $id(btnId);
+        var orig = btn.textContent;
+        var done = function () { btn.textContent = '✅'; setTimeout(function () { btn.textContent = orig; }, 1500); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(done).catch(function () { toast('복사에 실패했습니다'); });
+        } else {
+          toast('이 브라우저는 클립보드 복사를 지원하지 않습니다');
+        }
+      });
+    }
+    bindCoordCopy('fms-copy-btn', 'm-fms-lat', 'm-fms-lng');
+    bindCoordCopy('dms-copy-btn', 'm-dms-lat', 'm-dms-lng');
 
     // 추가 메뉴
     $id('menu-add-route').addEventListener('click', function () {

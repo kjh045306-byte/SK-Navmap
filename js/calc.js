@@ -52,11 +52,33 @@
     return { lat: latStr, lng: lngStr };
   }
 
+  // 소수점 좌표(DD) → 구글어스 방식 도분초(DMS) 형식 { lat:'N37°27\'41"', lng:'E127°02\'26"' }
+  function toDMS(lat, lng) {
+    function parts(v, degPad) {
+      var deg = Math.floor(v);
+      var minFull = (v - deg) * 60;
+      var min = Math.floor(minFull);
+      var sec = Math.round((minFull - min) * 60);
+      if (sec === 60) { sec = 0; min += 1; }
+      if (min === 60) { min = 0; deg += 1; }
+      return String(deg).padStart(degPad, '0') + '°' +
+        String(min).padStart(2, '0') + '\'' +
+        String(sec).padStart(2, '0') + '"';
+    }
+    var latH = lat >= 0 ? 'N' : 'S';
+    var lngH = lng >= 0 ? 'E' : 'W';
+    return {
+      lat: latH + parts(Math.abs(lat), 2),
+      lng: lngH + parts(Math.abs(lng), 3)
+    };
+  }
+
   global.Calc = {
     haversineNM: haversineNM,
     routeDistanceNM: routeDistanceNM,
     timeMin: timeMin,
     fuelLbs: fuelLbs,
-    toFMS: toFMS
+    toFMS: toFMS,
+    toDMS: toDMS
   };
 })(window);
