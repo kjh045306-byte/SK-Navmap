@@ -19,6 +19,7 @@
   var viaClickHandler = null;
   var mapClickHandler = null; // ui.js가 지도탭으로 좌표를 받을 때 설정
   var searchMarker = null; // 장소 검색 결과 임시 마커(보라)
+  var routePointClickHandler = null; // 설정되어 있으면 sk/land/wp 마커 탭 시 정보시트 대신 이 콜백(point, kind)으로 전달
 
   function loadGoogleMaps(apiKey) {
     return new Promise(function (resolve, reject) {
@@ -158,6 +159,14 @@
     };
   }
 
+  // 라벨은 행정구역명(시/도/시군구/동)만 남기고 나머지(POI, 도로명, 대중교통 등)는 숨긴다
+  var MAP_STYLES = [
+    { elementType: 'labels', stylers: [{ visibility: 'off' }] },
+    { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'on' }] },
+    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+    { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+  ];
+
   function initMap(container) {
     map = new google.maps.Map(container, {
       center: { lat: 36.6, lng: 127.9 },
@@ -166,7 +175,8 @@
       disableDefaultUI: true,
       zoomControl: false,
       gestureHandling: 'greedy',
-      clickableIcons: false
+      clickableIcons: false,
+      styles: MAP_STYLES
     });
     map.addListener('click', function (e) {
       if (mapClickHandler) mapClickHandler({ lat: e.latLng.lat(), lng: e.latLng.lng() });
@@ -192,7 +202,10 @@
         icon: iconFor('sk'),
         title: p.name
       });
-      mk.addListener('click', function () { onMarkerClick(p, 'sk'); });
+      mk.set('pointId', p.id);
+      mk.addListener('click', function () {
+        if (routePointClickHandler) routePointClickHandler(p, 'sk'); else onMarkerClick(p, 'sk');
+      });
       markers.sk.push(mk);
     });
 
@@ -203,7 +216,10 @@
         icon: iconFor('land'),
         title: p.name
       });
-      mk.addListener('click', function () { onMarkerClick(p, 'land'); });
+      mk.set('pointId', p.id);
+      mk.addListener('click', function () {
+        if (routePointClickHandler) routePointClickHandler(p, 'land'); else onMarkerClick(p, 'land');
+      });
       markers.land.push(mk);
     });
 
@@ -215,7 +231,10 @@
         title: p.name,
         zIndex: 1
       });
-      mk.addListener('click', function () { onMarkerClick(p, 'wp'); });
+      mk.set('pointId', p.id);
+      mk.addListener('click', function () {
+        if (routePointClickHandler) routePointClickHandler(p, 'wp'); else onMarkerClick(p, 'wp');
+      });
       markers.wp.push(mk);
     });
 
@@ -337,6 +356,21 @@
 
   function setMapClickHandler(fn) { mapClickHandler = fn; }
   function clearMapClickHandler() { mapClickHandler = null; }
+  function setRoutePointClickHandler(fn) { routePointClickHandler = fn; }
+  function clearRoutePointClickHandler() { routePointClickHandler = null; }
+
+  // 저장된 착륙장/WP 마커를 id로 찾아 드래그 가능 여부를 토글 (수정 중 지도에서 좌표 조정용)
+  function setMarkerDraggable(kind, id, draggable, onDragEnd) {
+    var mk = (markers[kind] || []).find(function (m) { return m.get('pointId') === id; });
+    if (!mk) return;
+    google.maps.event.clearListeners(mk, 'dragend');
+    mk.setDraggable(draggable);
+    if (draggable && onDragEnd) {
+      mk.addListener('dragend', function (e) {
+        onDragEnd({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+      });
+    }
+  }
 
   function setMapType(typeId) {
     if (map) map.setMapTypeId(typeId);
@@ -352,6 +386,9 @@
     panToPoint: panToPoint,
     setMapClickHandler: setMapClickHandler,
     clearMapClickHandler: clearMapClickHandler,
+    setRoutePointClickHandler: setRoutePointClickHandler,
+    clearRoutePointClickHandler: clearRoutePointClickHandler,
+    setMarkerDraggable: setMarkerDraggable,
     setMapType: setMapType,
     setViaPointCallbacks: setViaPointCallbacks,
     setViaPoints: setViaPoints,

@@ -286,39 +286,6 @@
     buildIndices();
   }
 
-  function stripOrigin(item) {
-    var copy = Object.assign({}, item);
-    delete copy._origin;
-    return copy;
-  }
-
-  // 관리자용: base + 사용자 추가/수정/삭제 반영본 전체 JSON 내보내기(다운로드)
-  // id를 그대로 유지해야 다음 배포 이후에도 각 기기의 로컬 오버레이가 올바른 항목을 계속 가리킨다.
-  function exportMergedJson() {
-    var merged = {
-      version: (baseCache && baseCache.version) || new Date().toISOString().slice(0, 10),
-      sk_landings: DB.sk_landings.map(stripOrigin),
-      landings: DB.landings.map(stripOrigin),
-      waypoints: DB.waypoints.map(stripOrigin),
-      routes: DB.routes.map(function (r) {
-        return { id: r.id, name: r.name, dep: r.dep, arr: r.arr, coords: r.coords, memo: r.memo || '' };
-      }),
-      cp: DB.cp.map(stripOrigin),
-      ctrz: DB.ctrz.map(stripOrigin),
-      airspace_notice: DB.airspace_notice.map(stripOrigin),
-      notam: DB.notam.map(stripOrigin)
-    };
-    var blob = new Blob([JSON.stringify(merged, null, 2)], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'navmap_data.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
   global.Data = {
     DB: DB,
     get ROUTES() { return ROUTES; },
@@ -335,7 +302,6 @@
     getLayerState: getLayerState,
     saveLayerState: saveLayerState,
     nearestPointName: nearestPointName,
-    exportMergedJson: exportMergedJson,
     get orphanedOverlay() { return orphanedOverlay; }
   };
 })(window);

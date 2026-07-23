@@ -42,6 +42,16 @@
     <div class="via-list" id="via-pick-list"></div>
   </div>
 
+  <!-- 출발/도착/경유 지도탭 선택 시 뜨는 역할 선택 패널 -->
+  <div class="route-point-chooser" id="route-point-chooser" style="display:none">
+    <div class="rpc-label" id="rpc-label">—</div>
+    <div class="rpc-btns">
+      <button class="rpc-btn dep" id="rpc-dep-btn">🛫 출발지</button>
+      <button class="rpc-btn arr" id="rpc-arr-btn">🛬 도착지</button>
+      <button class="rpc-btn via" id="rpc-via-btn">📍 경유지</button>
+    </div>
+  </div>
+
   <!-- 상단 바 -->
   <div class="top-bar">
     <div class="top-inner">
@@ -67,7 +77,7 @@
         <div class="action-main-icon">🗂️</div>
         <div class="action-main-text">
           <div class="action-main-title" id="route-display">항법경로 선택</div>
-          <div class="action-main-sub" id="route-sub">출발지 · 도착지를 선택하세요</div>
+          <div class="action-main-sub" id="route-sub" style="display:none"></div>
         </div>
         <button class="action-main-clear" id="route-clear-btn" style="display:none" title="선택 해제">✕</button>
         <div class="action-main-arrow">›</div>
@@ -164,14 +174,6 @@
         </div>
         <div class="add-menu-arrow">›</div>
       </div>
-      <div class="add-menu-item" id="menu-export">
-        <div class="add-menu-icon ami-gray">⬇️</div>
-        <div class="add-menu-text">
-          <div class="add-menu-name">데이터 내보내기</div>
-          <div class="add-menu-desc">추가한 항목을 포함해 JSON 다운로드</div>
-        </div>
-        <div class="add-menu-arrow">›</div>
-      </div>
     </div>
     <div class="sheet-bottom"></div>
   </div>
@@ -223,9 +225,6 @@
           <option value="satellite">위성</option>
           <option value="roadmap">일반지도</option>
         </select>
-      </div>
-      <div class="layer-export-row">
-        <button class="btn-block" id="layer-export-btn">⬇️ 데이터 내보내기 (navmap_data.json)</button>
       </div>
     </div>
     <div class="sheet-bottom"></div>
@@ -324,6 +323,7 @@
           <select class="form-select" id="ar-arr-select"><option value="">선택하세요</option></select>
         </div>
       </div>
+      <button class="btn-pick btn-pick-full" id="ar-pick-deparr-btn">🗺️ 지도에서 출발/도착/경유 선택</button>
       <div class="form-group">
         <div class="form-label">경유점 (선택)</div>
         <div class="via-info">

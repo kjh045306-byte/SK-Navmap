@@ -12,8 +12,12 @@
   var editingRouteId = null; // 항법경로 수정 중일 때 대상 id
   var selectedRouteId = null; // 현재 지도에 표시 중인(선택된) 저장 경로 id
   var TYPE_MAP = { sk: 'sk_landings', land: 'landings', wp: 'waypoints' };
+  var TYPE_TO_KIND = { sk_landings: 'sk', landings: 'land', waypoints: 'wp' };
   var currentSearchResult = null; // 장소 검색 결과 중 선택된 항목 { name, address, lat, lng }
   var routeComposeActive = false; // 항법경로 작성 폼이 열려 있는 동안(경유점 탭 선택 중 포함) true
+  var selectedDepPoint = null; // 현재 선택된 출발지 { name, lat, lng } — 드롭다운/지도탭 공통 소스
+  var selectedArrPoint = null; // 현재 선택된 도착지 { name, lat, lng }
+  var pendingRoutePoint = null; // 지도탭 직후 역할(출발/도착/경유) 선택 대기 중인 지점
 
   function $(sel) { return document.querySelector(sel); }
   function $id(id) { return document.getElementById(id); }
@@ -100,6 +104,37 @@
     };
   }
 
+  // 지도에서 출발/도착/경유지 선택 (기존 마커 탭 또는 빈 지도 탭 모두 지원)
+  function pickDepArr() {
+    closeSheet('add-route-sheet');
+    showPickHint('지도를 탭해 출발지·도착지·경유지를 선택하세요', true);
+    MapView.setMapClickHandler(function (latlng) {
+      openRoutePointChooser({ name: coordPointName(latlng), lat: latlng.lat, lng: latlng.lng });
+    });
+    MapView.setRoutePointClickHandler(function (point) {
+      openRoutePointChooser({ name: point.name, lat: point.lat, lng: point.lng });
+    });
+    pickDoneFn = function () {
+      hidePickHint();
+      closeRoutePointChooser();
+      MapView.clearMapClickHandler();
+      MapView.clearRoutePointClickHandler();
+      openSheet('add-route-sheet');
+    };
+    pickCancelFn = pickDoneFn;
+  }
+
+  function openRoutePointChooser(point) {
+    pendingRoutePoint = point;
+    $id('rpc-label').textContent = point.name;
+    $id('route-point-chooser').style.display = 'block';
+  }
+
+  function closeRoutePointChooser() {
+    pendingRoutePoint = null;
+    $id('route-point-chooser').style.display = 'none';
+  }
+
   // 경유점 드래그 이동 → 좌표 갱신
   function onViaDrag(index, latlng) {
     viaPoints[index] = latlng;
@@ -147,13 +182,38 @@
 
   // 출발/도착/경유점이 모두 갖춰지면 노란색 미리보기 선을 그린다 (저장 전 임시 경로)
   function updateDraftPreview() {
-    var depName = $id('ar-dep-select').value;
-    var arrName = $id('ar-arr-select').value;
-    var depPt = depName ? Data.ALL_POINTS.find(function (p) { return p.name === depName; }) : null;
-    var arrPt = arrName ? Data.ALL_POINTS.find(function (p) { return p.name === arrName; }) : null;
-    if (!depPt || !arrPt) { MapView.clearDraftRoute(); return; }
-    var coords = [{ lat: depPt.lat, lng: depPt.lng }].concat(viaPoints).concat([{ lat: arrPt.lat, lng: arrPt.lng }]);
+    if (!selectedDepPoint || !selectedArrPoint) { MapView.clearDraftRoute(); return; }
+    var coords = [{ lat: selectedDepPoint.lat, lng: selectedDepPoint.lng }]
+      .concat(viaPoints)
+      .concat([{ lat: selectedArrPoint.lat, lng: selectedArrPoint.lng }]);
     MapView.previewDraftRoute(coords);
+  }
+
+  // 드롭다운/지도탭 어느 경로로 선택하든 이 함수를 거쳐 selectedDepPoint/selectedArrPoint를 갱신한다.
+  // 등록된 지점(ALL_POINTS)이 아니면(빈 지도 탭) select에 임시 옵션을 만들어 보여준다.
+  function setDepArrPoint(role, point) {
+    var selectId = role === 'dep' ? 'ar-dep-select' : 'ar-arr-select';
+    var sel = $id(selectId);
+    var isRegistered = Data.ALL_POINTS.some(function (p) { return p.name === point.name; });
+    var tempId = selectId + '-temp-option';
+    var existingTemp = $id(tempId);
+    if (existingTemp) existingTemp.remove();
+    if (!isRegistered) {
+      var opt = document.createElement('option');
+      opt.id = tempId;
+      opt.value = point.name;
+      opt.textContent = point.name + ' (좌표 직접 선택)';
+      opt.dataset.lat = point.lat;
+      opt.dataset.lng = point.lng;
+      sel.appendChild(opt);
+    }
+    sel.value = point.name;
+    if (role === 'dep') selectedDepPoint = point; else selectedArrPoint = point;
+    updateDraftPreview();
+  }
+
+  function coordPointName(latlng) {
+    return '좌표 ' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
   }
 
   /* ── 장소 검색 ── */
@@ -162,7 +222,9 @@
     document.querySelectorAll('.sheet.open').forEach(function (s) { closeSheet(s.id); });
     hidePickHint();
     $id('via-pick-panel').style.display = 'none';
+    closeRoutePointChooser();
     MapView.clearMapClickHandler();
+    MapView.clearRoutePointClickHandler();
   }
 
   function openSearchSheet() {
@@ -280,7 +342,7 @@
     openSheet('marker-sheet');
   }
 
-  // 착륙장/SK착륙장/WayPoint 수정 폼 열기
+  // 착륙장/SK착륙장/WayPoint 수정 폼 열기 — 해당 마커는 폼이 열려 있는 동안 드래그로 좌표 조정 가능
   function openEditPoint(kind, point) {
     editingPoint = { type: TYPE_MAP[kind], id: point.id };
     if (kind === 'wp') {
@@ -299,6 +361,12 @@
       $id('add-landing-sheet').querySelector('.sheet-title').textContent = '착륙장 수정';
       openSheet('add-landing-sheet');
     }
+    MapView.setMarkerDraggable(kind, point.id, true, function (latlng) {
+      var latId = kind === 'wp' ? 'aw-lat' : 'al-lat';
+      var lngId = kind === 'wp' ? 'aw-lng' : 'al-lng';
+      $id(latId).value = latlng.lat.toFixed(6);
+      $id(lngId).value = latlng.lng.toFixed(6);
+    });
   }
 
   /* ── 경로 선택/표시 ── */
@@ -312,6 +380,7 @@
     $id('result-bar').classList.add('show');
     $id('route-display').textContent = r.depName + ' → ' + r.arrName;
     $id('route-sub').textContent = r.distNm.toFixed(1) + 'NM · ' + r.t130.toFixed(1) + '분 · 연료 ' + Math.round(r.fuel) + 'LBS';
+    $id('route-sub').style.display = '';
     $id('route-clear-btn').style.display = 'flex';
     closeSheet('route-sheet');
   }
@@ -321,7 +390,8 @@
     selectedRouteId = null;
     $id('result-bar').classList.remove('show');
     $id('route-display').textContent = '항법경로 선택';
-    $id('route-sub').textContent = '출발지 · 도착지를 선택하세요';
+    $id('route-sub').textContent = '';
+    $id('route-sub').style.display = 'none';
     $id('route-clear-btn').style.display = 'none';
   }
 
@@ -409,8 +479,8 @@
     populatePointSelects();
     editingRouteId = r.id;
     $id('ar-name').value = r.name;
-    $id('ar-dep-select').value = r.depName;
-    $id('ar-arr-select').value = r.arrName;
+    setDepArrPoint('dep', Data.ALL_POINTS.find(function (p) { return p.name === r.depName; }) || { name: r.depName, lat: r.dep.lat, lng: r.dep.lng });
+    setDepArrPoint('arr', Data.ALL_POINTS.find(function (p) { return p.name === r.arrName; }) || { name: r.arrName, lat: r.arr.lat, lng: r.arr.lng });
     $id('ar-memo').value = r.memo || '';
     viaPoints = (r.coords || []).slice(1, -1).map(function (c) { return { lat: c.lat, lng: c.lng }; });
     $id('add-route-sheet').querySelector('.sheet-title').textContent = '항법경로 수정';
@@ -457,7 +527,7 @@
 
   /* ── 착륙장/WP/경로 추가 폼 ── */
   function populatePointSelects() {
-    var points = Data.DB.sk_landings.concat(Data.DB.landings).slice().sort(function (a, b) {
+    var points = Data.DB.sk_landings.concat(Data.DB.landings).concat(Data.DB.waypoints).slice().sort(function (a, b) {
       return a.name.localeCompare(b.name, 'ko');
     });
     [$id('ar-dep-select'), $id('ar-arr-select')].forEach(function (sel) {
@@ -473,6 +543,7 @@
   }
 
   function resetLandingForm() {
+    if (editingPoint) MapView.setMarkerDraggable(TYPE_TO_KIND[editingPoint.type], editingPoint.id, false);
     $id('al-name').value = '';
     $id('al-lat').value = '';
     $id('al-lng').value = '';
@@ -482,6 +553,7 @@
     $id('add-landing-sheet').querySelector('.sheet-title').textContent = '착륙장 추가';
   }
   function resetWaypointForm() {
+    if (editingPoint) MapView.setMarkerDraggable(TYPE_TO_KIND[editingPoint.type], editingPoint.id, false);
     $id('aw-name').value = '';
     $id('aw-lat').value = '';
     $id('aw-lng').value = '';
@@ -491,10 +563,15 @@
   }
   function resetRouteForm() {
     $id('ar-name').value = '';
-    $id('ar-dep-select').value = '';
-    $id('ar-arr-select').value = '';
+    ['ar-dep-select', 'ar-arr-select'].forEach(function (selectId) {
+      var tempOpt = $id(selectId + '-temp-option');
+      if (tempOpt) tempOpt.remove();
+      $id(selectId).value = '';
+    });
     $id('ar-memo').value = '';
     viaPoints = [];
+    selectedDepPoint = null;
+    selectedArrPoint = null;
     editingRouteId = null;
     routeComposeActive = false;
     $id('add-route-sheet').querySelector('.sheet-title').textContent = '새 항법경로';
@@ -551,13 +628,10 @@
 
   function saveNewRoute() {
     var name = $id('ar-name').value.trim();
-    var depName = $id('ar-dep-select').value;
-    var arrName = $id('ar-arr-select').value;
-    if (!name || !depName || !arrName) { toast('이름, 출발지, 도착지를 입력하세요'); return; }
-    if (depName === arrName) { toast('출발지와 도착지가 같습니다'); return; }
-    var depPt = Data.ALL_POINTS.find(function (p) { return p.name === depName; });
-    var arrPt = Data.ALL_POINTS.find(function (p) { return p.name === arrName; });
-    if (!depPt || !arrPt) { toast('출발/도착 지점을 찾을 수 없습니다'); return; }
+    if (!name || !selectedDepPoint || !selectedArrPoint) { toast('이름, 출발지, 도착지를 입력하세요'); return; }
+    if (selectedDepPoint.name === selectedArrPoint.name) { toast('출발지와 도착지가 같습니다'); return; }
+    var depPt = selectedDepPoint;
+    var arrPt = selectedArrPoint;
     var coords = [{ lat: depPt.lat, lng: depPt.lng }].concat(viaPoints).concat([{ lat: arrPt.lat, lng: arrPt.lng }]);
     var fields = {
       name: name,
@@ -691,12 +765,6 @@
       resetWaypointForm();
       openSheet('add-waypoint-sheet');
     });
-    $id('menu-export').addEventListener('click', function () {
-      closeSheet('add-menu');
-      Data.exportMergedJson();
-      toast('navmap_data.json 파일을 다운로드했습니다');
-    });
-
     // 착륙장 추가
     $id('al-pick-btn').addEventListener('click', function () {
       pickLocation(function (latlng) {
@@ -721,10 +789,43 @@
     $id('ar-pick-via-btn').addEventListener('click', pickViaPoints);
     $id('ar-search-via-btn').addEventListener('click', openSearchSheet);
     $id('ar-reset-via-btn').addEventListener('click', function () { viaPoints = []; syncViaUI(); });
+    $id('ar-pick-deparr-btn').addEventListener('click', pickDepArr);
+    $id('rpc-dep-btn').addEventListener('click', function () {
+      if (!pendingRoutePoint) return;
+      setDepArrPoint('dep', pendingRoutePoint);
+      closeRoutePointChooser();
+      toast('출발지로 선택되었습니다');
+    });
+    $id('rpc-arr-btn').addEventListener('click', function () {
+      if (!pendingRoutePoint) return;
+      setDepArrPoint('arr', pendingRoutePoint);
+      closeRoutePointChooser();
+      toast('도착지로 선택되었습니다');
+    });
+    $id('rpc-via-btn').addEventListener('click', function () {
+      if (!pendingRoutePoint) return;
+      viaPoints.push({ lat: pendingRoutePoint.lat, lng: pendingRoutePoint.lng });
+      syncViaUI();
+      closeRoutePointChooser();
+      toast('경유지로 추가되었습니다');
+    });
     $id('ar-save-btn').addEventListener('click', saveNewRoute);
     $id('ar-cancel-btn').addEventListener('click', function () { closeSheet('add-route-sheet'); resetRouteForm(); });
-    $id('ar-dep-select').addEventListener('change', updateDraftPreview);
-    $id('ar-arr-select').addEventListener('change', updateDraftPreview);
+    function pointFromSelect(sel) {
+      var registered = Data.ALL_POINTS.find(function (p) { return p.name === sel.value; });
+      if (registered) return registered;
+      var opt = sel.selectedOptions[0];
+      if (opt && opt.dataset.lat) return { name: sel.value, lat: parseFloat(opt.dataset.lat), lng: parseFloat(opt.dataset.lng) };
+      return null;
+    }
+    $id('ar-dep-select').addEventListener('change', function () {
+      selectedDepPoint = pointFromSelect(this);
+      updateDraftPreview();
+    });
+    $id('ar-arr-select').addEventListener('change', function () {
+      selectedArrPoint = pointFromSelect(this);
+      updateDraftPreview();
+    });
 
     // 레이어 시트
     $id('layer-sk').addEventListener('change', function () { MapView.setLayerVisible('sk', this.checked); });
@@ -738,10 +839,6 @@
     $id('maptype-select').addEventListener('change', function () {
       MapView.setMapType(this.value);
       localStorage.setItem('skn_maptype', this.value);
-    });
-    $id('layer-export-btn').addEventListener('click', function () {
-      Data.exportMergedJson();
-      toast('navmap_data.json 파일을 다운로드했습니다');
     });
 
     MapView.setMapType(localStorage.getItem('skn_maptype') || 'hybrid');

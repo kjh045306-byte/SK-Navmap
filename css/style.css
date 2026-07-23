@@ -230,7 +230,6 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .ami-green{background:rgba(0,200,100,0.12);border:1px solid rgba(0,200,100,0.25)}
 .ami-orange{background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.25)}
 .ami-blue{background:rgba(0,200,255,0.12);border:1px solid rgba(0,200,255,0.25)}
-.ami-gray{background:rgba(200,223,240,0.08);border:1px solid var(--border)}
 .add-menu-name{font-size:14px;font-weight:700;color:var(--text)}
 .add-menu-desc{font-size:11px;color:var(--dim);margin-top:2px}
 .add-menu-arrow{margin-left:auto;color:var(--dim);font-size:18px}
@@ -256,10 +255,6 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .switch input:checked + .switch-track::before{transform:translateX(18px)}
 .select-row{display:flex;align-items:center;justify-content:space-between;padding:12px 4px}
 .select-row select{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:6px 10px}
-.layer-export-row{padding:14px 4px 4px}
-.btn-block{width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);
-  font-size:13px;font-weight:600;padding:11px;cursor:pointer;text-align:center}
-.btn-block:active{border-color:var(--sk-orange)}
 
 /* ══════════════════════════ 입력 폼 (착륙장/WP/경로 추가) ══════════════════════════ */
 .form-body{padding:0 18px 8px;overflow-y:auto}
@@ -277,6 +272,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .form-pick-row .form-input{flex:1}
 .btn-pick{background:rgba(0,200,255,0.12);border:1px solid rgba(0,200,255,0.3);border-radius:10px;
   color:var(--blue);font-size:12px;padding:0 14px;cursor:pointer;white-space:nowrap}
+.btn-pick-full{display:block;width:100%;padding:11px;text-align:center;margin-bottom:14px}
 .form-actions{display:flex;gap:10px;padding:6px 0 4px}
 .btn-primary{flex:1;background:var(--sk-orange);border:none;border-radius:10px;color:#fff;
   font-size:14px;font-weight:700;padding:12px;cursor:pointer}
@@ -306,6 +302,21 @@ button,input,select,textarea{font-family:inherit;color:inherit}
   padding:10px 10px 2px;backdrop-filter:blur(10px);
 }
 .via-pick-panel .via-row{background:rgba(255,255,255,0.06)}
+
+/* 지도 탭으로 출발/도착/경유 선택 시, 탭 직후 역할을 고르는 패널 */
+.route-point-chooser{
+  position:absolute;top:64px;left:14px;right:14px;z-index:81;
+  background:rgba(13,21,32,0.95);border:1px solid var(--sk-orange);border-radius:14px;
+  padding:12px;backdrop-filter:blur(10px);
+}
+.rpc-label{font-size:12px;font-weight:600;color:#fff;margin-bottom:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rpc-btns{display:flex;gap:8px}
+.rpc-btn{flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);
+  border-radius:10px;color:#fff;font-size:12px;font-weight:700;padding:9px 4px;cursor:pointer;text-align:center}
+.rpc-btn.dep:active{background:var(--blue);border-color:var(--blue)}
+.rpc-btn.arr:active{background:var(--sk-orange);border-color:var(--sk-orange)}
+.rpc-btn.via:active{background:var(--gold);border-color:var(--gold);color:#3a2a00}
 
 /* ══════════════════════════ 토스트 ══════════════════════════ */
 .toast{
@@ -338,4 +349,5 @@ button,input,select,textarea{font-family:inherit;color:inherit}
   .pick-hint{max-width:640px;left:50%;transform:translate(-50%,-100%)}
   .pick-hint.show{transform:translate(-50%,0)}
   .via-pick-panel{max-width:640px;left:50%;transform:translateX(-50%)}
+  .route-point-chooser{max-width:640px;left:50%;transform:translateX(-50%)}
 }
