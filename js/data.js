@@ -6,6 +6,7 @@
   var LS_USER = 'skn_user_data';
   var LS_FAVS = 'skn_favorites';
   var LS_LAYERS = 'skn_layers';
+  var LS_KMZ = 'skn_kmz_data';
   var TYPES = ['sk_landings', 'landings', 'waypoints', 'routes'];
 
   var EMPTY_USER = function () {
@@ -14,8 +15,10 @@
   var emptyEdits = function () { return { sk_landings: {}, landings: {}, waypoints: {}, routes: {} }; };
   var emptyDeletes = function () { return { sk_landings: [], landings: [], waypoints: [], routes: [] }; };
 
+  var AIRSPACE_TYPES = ['cp', 'ctrz', 'airspace_notice', 'notam'];
+
   // 병합된 현재 데이터 (base + 사용자 추가/수정/삭제 오버레이 적용)
-  var DB = { sk_landings: [], landings: [], waypoints: [], routes: [] };
+  var DB = { sk_landings: [], landings: [], waypoints: [], routes: [], cp: [], ctrz: [], airspace_notice: [], notam: [] };
   // 검색/표시용으로 가공된 경로 목록 (거리/시간/연료/dep·arr 이름 포함)
   var ROUTES = [];
   // 모든 지점(마커 매칭용): {name,lat,lng,kind}
@@ -134,8 +137,19 @@
     return !!f[routeName];
   }
 
+  // KMZ 업로드 데이터 (사용자가 가져온 KML/KMZ 지오메트리, 로컬에만 저장)
+  function getKmzData() {
+    try { return JSON.parse(localStorage.getItem(LS_KMZ) || 'null'); } catch (e) { return null; }
+  }
+  function setKmzData(fileName, items) {
+    localStorage.setItem(LS_KMZ, JSON.stringify({ fileName: fileName, items: items }));
+  }
+  function clearKmzData() {
+    localStorage.removeItem(LS_KMZ);
+  }
+
   // 레이어 표시 상태
-  var DEFAULT_LAYERS = { sk: true, land: true, wp: false, routesAll: false };
+  var DEFAULT_LAYERS = { sk: true, land: true, wp: false, routesAll: false, cp: false, ctrz: false, airspace_notice: false, notam: false, kmz: true };
   function getLayerState() {
     try {
       var raw = localStorage.getItem(LS_LAYERS);
@@ -251,6 +265,8 @@
     DB.landings = applyOverlay('landings', base.landings, user.landings, edits, deletes);
     DB.waypoints = applyOverlay('waypoints', base.waypoints, user.waypoints, edits, deletes);
     DB.routes = applyOverlay('routes', base.routes, user.routes, edits, deletes);
+    // 공역 참고 레이어(CP/CTRZ/공역사항/NOTAM) — 사용자 추가/수정 없이 base 데이터 그대로 표시
+    AIRSPACE_TYPES.forEach(function (type) { DB[type] = base[type] || []; });
   }
 
   var baseCache = null;
@@ -298,7 +314,11 @@
       waypoints: DB.waypoints.map(stripOrigin),
       routes: DB.routes.map(function (r) {
         return { id: r.id, name: r.name, dep: r.dep, arr: r.arr, coords: r.coords, memo: r.memo || '' };
-      })
+      }),
+      cp: DB.cp.map(stripOrigin),
+      ctrz: DB.ctrz.map(stripOrigin),
+      airspace_notice: DB.airspace_notice.map(stripOrigin),
+      notam: DB.notam.map(stripOrigin)
     };
     var blob = new Blob([JSON.stringify(merged, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
@@ -326,6 +346,9 @@
     toggleFavorite: toggleFavorite,
     getLayerState: getLayerState,
     saveLayerState: saveLayerState,
+    getKmzData: getKmzData,
+    setKmzData: setKmzData,
+    clearKmzData: clearKmzData,
     nearestPointName: nearestPointName,
     exportMergedJson: exportMergedJson,
     get orphanedOverlay() { return orphanedOverlay; }

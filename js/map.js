@@ -3,7 +3,15 @@
   'use strict';
 
   var map = null;
-  var markers = { sk: [], land: [], wp: [] };
+  var markers = { sk: [], land: [], wp: [], cp: [], ctrz: [], airspace_notice: [], notam: [], kmz: [] };
+  var AIRSPACE_KINDS = ['cp', 'ctrz', 'airspace_notice', 'notam'];
+  var AIRSPACE_STYLE = {
+    cp: '#00e5ff',
+    ctrz: '#ff4444',
+    airspace_notice: '#ffaa00',
+    notam: '#cc66ff',
+    kmz: '#ff33aa'
+  };
   var allRouteLines = []; // 전체 경로(초록, 얇음) — 레이어 ON시만 지도에 부착
   var selectedPolyline = null; // 저장된 경로 선택 시(오렌지) — 레이어 설정과 무관하게 항상 표시
   var draftPolyline = null; // 작성 중인(미저장) 경로 미리보기(노랑) — 레이어 설정과 무관하게 항상 표시
@@ -44,6 +52,48 @@
       return { url: markerIconUrl('wp'), scaledSize: new google.maps.Size(16, 16), anchor: new google.maps.Point(8, 8) };
     }
     return { url: markerIconUrl(kind), scaledSize: new google.maps.Size(30, 30), anchor: new google.maps.Point(15, 15) };
+  }
+
+  function airspaceIcon(kind) {
+    var color = AIRSPACE_STYLE[kind] || '#ffffff';
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">' +
+      '<circle cx="7" cy="7" r="5" fill="' + color + '" stroke="#ffffff" stroke-width="1.5"/></svg>';
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(14, 14),
+      anchor: new google.maps.Point(7, 7)
+    };
+  }
+
+  // geomType(Point/LineString/Polygon)에 따라 마커/폴리라인/폴리곤으로 렌더링 (공역 레이어, KMZ 공용)
+  function renderGeomItems(items, kind, visible) {
+    var color = AIRSPACE_STYLE[kind] || '#ffffff';
+    return (items || []).map(function (item) {
+      if (item.geomType === 'Point') {
+        return new google.maps.Marker({
+          position: { lat: item.lat, lng: item.lng },
+          map: visible ? map : null,
+          icon: airspaceIcon(kind),
+          title: item.name,
+          zIndex: 2
+        });
+      }
+      if (item.geomType === 'Polygon') {
+        return new google.maps.Polygon({
+          paths: item.coords,
+          strokeColor: color, strokeWeight: 2, strokeOpacity: 0.9,
+          fillColor: color, fillOpacity: 0.12,
+          map: visible ? map : null,
+          zIndex: 2
+        });
+      }
+      return new google.maps.Polyline({
+        path: item.coords,
+        strokeColor: color, strokeWeight: 2, strokeOpacity: 0.85,
+        map: visible ? map : null,
+        zIndex: 2
+      });
+    });
   }
 
   function viaIcon(num) {
@@ -119,7 +169,17 @@
       markers.wp.push(mk);
     });
 
+    AIRSPACE_KINDS.forEach(function (kind) {
+      clearMarkerGroup(kind);
+      markers[kind] = renderGeomItems(Data.DB[kind], kind, layers[kind]);
+    });
+
     renderAllRouteLines(layers.routesAll);
+  }
+
+  function renderKmzLayer(items, visible) {
+    clearMarkerGroup('kmz');
+    markers.kmz = renderGeomItems(items, 'kmz', visible);
   }
 
   function renderAllRouteLines(visible) {
@@ -252,6 +312,7 @@
     setViaPoints: setViaPoints,
     clearViaMarkers: clearViaMarkers,
     previewDraftRoute: previewDraftRoute,
-    clearDraftRoute: clearDraftRoute
+    clearDraftRoute: clearDraftRoute,
+    renderKmzLayer: renderKmzLayer
   };
 })(window);
