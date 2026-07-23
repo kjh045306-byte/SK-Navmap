@@ -18,6 +18,7 @@
   var viaDragHandler = null;
   var viaClickHandler = null;
   var mapClickHandler = null; // ui.js가 지도탭으로 좌표를 받을 때 설정
+  var searchMarker = null; // 장소 검색 결과 임시 마커(보라)
 
   function loadGoogleMaps(apiKey) {
     return new Promise(function (resolve, reject) {
@@ -25,7 +26,7 @@
       global.__onGoogleMapsLoaded = function () { resolve(); };
       var s = document.createElement('script');
       s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey) +
-        '&v=weekly&callback=__onGoogleMapsLoaded&language=ko&region=KR';
+        '&v=weekly&libraries=places&callback=__onGoogleMapsLoaded&language=ko&region=KR';
       s.async = true;
       s.onerror = function () { reject(new Error('Google Maps 스크립트 로드에 실패했습니다.')); };
       document.head.appendChild(s);
@@ -93,6 +94,56 @@
         zIndex: 2
       });
     });
+  }
+
+  function searchMarkerIcon() {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26">' +
+      '<circle cx="13" cy="13" r="10" fill="#a855f7" stroke="#ffffff" stroke-width="2.5"/>' +
+      '<circle cx="13" cy="13" r="3.5" fill="#ffffff"/></svg>';
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(26, 26),
+      anchor: new google.maps.Point(13, 13)
+    };
+  }
+
+  // Google Places 텍스트 검색 — 결과를 { name, address, lat, lng } 배열로 변환
+  function searchPlaces(query) {
+    return new Promise(function (resolve, reject) {
+      if (!google.maps.places) { reject(new Error('Places 라이브러리가 로드되지 않았습니다')); return; }
+      var svc = new google.maps.places.PlacesService(map);
+      svc.textSearch({ query: query, region: 'kr' }, function (results, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          resolve((results || []).map(function (r) {
+            return {
+              name: r.name,
+              address: r.formatted_address || '',
+              lat: r.geometry.location.lat(),
+              lng: r.geometry.location.lng()
+            };
+          }));
+        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+          resolve([]);
+        } else {
+          reject(new Error(status));
+        }
+      });
+    });
+  }
+
+  function showSearchMarker(lat, lng, title) {
+    clearSearchMarker();
+    searchMarker = new google.maps.Marker({
+      position: { lat: lat, lng: lng },
+      map: map,
+      icon: searchMarkerIcon(),
+      title: title,
+      zIndex: 25
+    });
+  }
+
+  function clearSearchMarker() {
+    if (searchMarker) { searchMarker.setMap(null); searchMarker = null; }
   }
 
   function viaIcon(num) {
@@ -306,6 +357,9 @@
     setViaPoints: setViaPoints,
     clearViaMarkers: clearViaMarkers,
     previewDraftRoute: previewDraftRoute,
-    clearDraftRoute: clearDraftRoute
+    clearDraftRoute: clearDraftRoute,
+    searchPlaces: searchPlaces,
+    showSearchMarker: showSearchMarker,
+    clearSearchMarker: clearSearchMarker
   };
 })(window);

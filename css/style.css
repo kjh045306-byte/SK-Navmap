@@ -168,6 +168,22 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .rc-icon-btn{background:none;border:none;font-size:14px;color:var(--dim);cursor:pointer;padding:3px}
 .rc-icon-btn.danger:active{color:#ff5555}
 
+/* 장소 검색 결과 카드 */
+.place-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;margin-bottom:8px;cursor:pointer;
+  display:flex;align-items:center;gap:12px;transition:border-color 0.15s;
+}
+.place-card:active{border-color:var(--sk-orange);background:rgba(255,107,0,0.05)}
+.place-card-icon{width:36px;height:36px;border-radius:10px;background:rgba(168,85,247,0.15);
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#a855f7}
+.place-card-info{flex:1;min-width:0}
+.place-card-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.place-card-addr{font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 검색 결과 정보 시트 액션 */
+.sr-actions{display:flex;gap:10px;margin:0 18px 14px}
+
 /* ══════════════════════════ 마커 탭 시트 ══════════════════════════ */
 #marker-sheet .sheet-panel{max-height:65vh}
 .marker-header{padding:4px 18px 14px;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}

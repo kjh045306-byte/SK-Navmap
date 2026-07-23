@@ -12,6 +12,8 @@
   var editingRouteId = null; // 항법경로 수정 중일 때 대상 id
   var selectedRouteId = null; // 현재 지도에 표시 중인(선택된) 저장 경로 id
   var TYPE_MAP = { sk: 'sk_landings', land: 'landings', wp: 'waypoints' };
+  var currentSearchResult = null; // 장소 검색 결과 중 선택된 항목 { name, address, lat, lng }
+  var routeComposeActive = false; // 항법경로 작성 폼이 열려 있는 동안(경유점 탭 선택 중 포함) true
 
   function $(sel) { return document.querySelector(sel); }
   function $id(id) { return document.getElementById(id); }
@@ -152,6 +154,77 @@
     if (!depPt || !arrPt) { MapView.clearDraftRoute(); return; }
     var coords = [{ lat: depPt.lat, lng: depPt.lng }].concat(viaPoints).concat([{ lat: arrPt.lat, lng: arrPt.lng }]);
     MapView.previewDraftRoute(coords);
+  }
+
+  /* ── 장소 검색 ── */
+  // 검색 시트를 열기 전, 열려 있는 시트/좌표 선택 모드를 정리(선택 중이던 항법경로 작성은 유지)
+  function pauseForSearch() {
+    document.querySelectorAll('.sheet.open').forEach(function (s) { closeSheet(s.id); });
+    hidePickHint();
+    $id('via-pick-panel').style.display = 'none';
+    MapView.clearMapClickHandler();
+  }
+
+  function openSearchSheet() {
+    pauseForSearch();
+    $id('place-search-input').value = '';
+    $id('place-search-results').innerHTML = '';
+    openSheet('search-sheet');
+    $id('place-search-input').focus();
+  }
+
+  function buildPlaceCard(r) {
+    var card = el('div', 'place-card');
+    card.appendChild(el('div', 'place-card-icon', '📍'));
+    var info = el('div', 'place-card-info');
+    info.appendChild(el('div', 'place-card-name', r.name));
+    info.appendChild(el('div', 'place-card-addr', r.address || ''));
+    card.appendChild(info);
+    card.addEventListener('click', function () { selectSearchResult(r); });
+    return card;
+  }
+
+  function renderPlaceSearchResults(results) {
+    var wrap = $id('place-search-results');
+    wrap.innerHTML = '';
+    if (!results.length) { wrap.appendChild(el('div', 'empty-hint', '검색 결과가 없습니다')); return; }
+    results.forEach(function (r) { wrap.appendChild(buildPlaceCard(r)); });
+  }
+
+  function runPlaceSearch() {
+    var q = $id('place-search-input').value.trim();
+    if (!q) return;
+    var wrap = $id('place-search-results');
+    wrap.innerHTML = '';
+    wrap.appendChild(el('div', 'empty-hint', '검색 중...'));
+    MapView.searchPlaces(q).then(function (results) {
+      renderPlaceSearchResults(results);
+    }).catch(function (e) {
+      console.error(e);
+      wrap.innerHTML = '';
+      var msg = String(e.message || '').indexOf('REQUEST_DENIED') >= 0
+        ? 'Places API가 활성화되어 있지 않습니다 (Google Cloud Console 확인 필요)'
+        : '검색 중 오류가 발생했습니다';
+      wrap.appendChild(el('div', 'empty-hint', msg));
+    });
+  }
+
+  // 검색 결과 선택 → 임시(보라) 마커 표시 + 지도 이동/확대 + 정보 시트
+  function selectSearchResult(r) {
+    currentSearchResult = r;
+    closeSheet('search-sheet');
+    MapView.showSearchMarker(r.lat, r.lng, r.name);
+    MapView.panToPoint(r.lat, r.lng, 16);
+    $id('sr-name').textContent = r.name;
+    $id('sr-address').textContent = r.address || '—';
+    var fms = Calc.toFMS(r.lat, r.lng);
+    var dms = Calc.toDMS(r.lat, r.lng);
+    $id('sr-fms-lat').textContent = fms.lat;
+    $id('sr-fms-lng').textContent = fms.lng;
+    $id('sr-dms-lat').textContent = dms.lat;
+    $id('sr-dms-lng').textContent = dms.lng;
+    $id('sr-add-via-btn').style.display = routeComposeActive ? '' : 'none';
+    openSheet('search-result-sheet');
   }
 
   /* ── 마커 클릭 → 정보 시트 ── */
@@ -343,6 +416,7 @@
     $id('add-route-sheet').querySelector('.sheet-title').textContent = '항법경로 수정';
     closeSheet('route-sheet');
     openSheet('add-route-sheet');
+    routeComposeActive = true;
     syncViaUI();
   }
 
@@ -422,6 +496,7 @@
     $id('ar-memo').value = '';
     viaPoints = [];
     editingRouteId = null;
+    routeComposeActive = false;
     $id('add-route-sheet').querySelector('.sheet-title').textContent = '새 항법경로';
     syncViaUI();
   }
@@ -516,6 +591,7 @@
   /* ── 초기화: 이벤트 연결 ── */
   function init() {
     // 상단바 / 하단바
+    $id('search-btn').addEventListener('click', openSearchSheet);
     $id('layer-btn').addEventListener('click', function () { syncLayerSheetUI(); openSheet('layer-sheet'); });
     $id('route-select-btn').addEventListener('click', function () {
       renderRouteTabs();
@@ -549,6 +625,36 @@
       renderRouteList();
     });
 
+    // 장소 검색
+    $id('place-search-go').addEventListener('click', runPlaceSearch);
+    $id('place-search-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') runPlaceSearch();
+    });
+    $id('sr-close-btn').addEventListener('click', function () {
+      MapView.clearSearchMarker();
+      closeSheet('search-result-sheet');
+    });
+    $id('sr-add-landing-btn').addEventListener('click', function () {
+      if (!currentSearchResult) return;
+      MapView.clearSearchMarker();
+      closeSheet('search-result-sheet');
+      resetLandingForm();
+      $id('al-name').value = currentSearchResult.name;
+      $id('al-lat').value = currentSearchResult.lat.toFixed(6);
+      $id('al-lng').value = currentSearchResult.lng.toFixed(6);
+      $id('al-memo').value = currentSearchResult.address || '';
+      openSheet('add-landing-sheet');
+    });
+    $id('sr-add-via-btn').addEventListener('click', function () {
+      if (!currentSearchResult) return;
+      viaPoints.push({ lat: currentSearchResult.lat, lng: currentSearchResult.lng });
+      syncViaUI();
+      MapView.clearSearchMarker();
+      closeSheet('search-result-sheet');
+      openSheet('add-route-sheet');
+      toast('경유지로 추가되었습니다');
+    });
+
     // 마커 시트
     $id('marker-close-btn').addEventListener('click', function () { closeSheet('marker-sheet'); });
     function bindCoordCopy(btnId, latId, lngId) {
@@ -573,6 +679,7 @@
       populatePointSelects();
       resetRouteForm();
       openSheet('add-route-sheet');
+      routeComposeActive = true;
     });
     $id('menu-add-landing').addEventListener('click', function () {
       closeSheet('add-menu');
@@ -612,6 +719,7 @@
 
     // 항법경로 추가
     $id('ar-pick-via-btn').addEventListener('click', pickViaPoints);
+    $id('ar-search-via-btn').addEventListener('click', openSearchSheet);
     $id('ar-reset-via-btn').addEventListener('click', function () { viaPoints = []; syncViaUI(); });
     $id('ar-save-btn').addEventListener('click', saveNewRoute);
     $id('ar-cancel-btn').addEventListener('click', function () { closeSheet('add-route-sheet'); resetRouteForm(); });

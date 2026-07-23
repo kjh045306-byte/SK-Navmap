@@ -47,6 +47,7 @@
     <div class="top-inner">
       <div class="logo">🚁 <span class="sk">SK</span> <span class="nav">항법지도</span></div>
       <div class="top-spacer"></div>
+      <button class="top-btn" id="search-btn">🔍 검색</button>
       <button class="top-btn" id="layer-btn">🗺️ 레이어</button>
     </div>
   </div>
@@ -332,6 +333,7 @@
         <div class="via-list" id="ar-via-list"></div>
         <div class="via-btn-row">
           <button class="btn-pick" id="ar-pick-via-btn">📍 지도에서 경유점 선택</button>
+          <button class="btn-pick" id="ar-search-via-btn">🔍 검색해서 추가</button>
           <button class="btn-pick" id="ar-reset-via-btn">초기화</button>
         </div>
       </div>
@@ -343,6 +345,59 @@
         <button class="btn-secondary" id="ar-cancel-btn">취소</button>
         <button class="btn-primary" id="ar-save-btn">저장</button>
       </div>
+    </div>
+    <div class="sheet-bottom"></div>
+  </div>
+</div>
+
+<!-- ── 장소 검색 시트 ── -->
+<div class="sheet" id="search-sheet">
+  <div class="sheet-overlay"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">장소 검색</div>
+    <div class="search-wrap">
+      <input class="search-input" id="place-search-input" placeholder="예: 서울대학교">
+      <span class="search-icon" id="place-search-go" style="pointer-events:auto;cursor:pointer">🔍</span>
+    </div>
+    <div class="route-scroll" id="place-search-results"></div>
+    <div class="sheet-bottom"></div>
+  </div>
+</div>
+
+<!-- ── 검색 결과 정보 시트 ── -->
+<div class="sheet" id="search-result-sheet">
+  <div class="sheet-overlay"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="marker-header">
+      <div>
+        <div class="marker-name" id="sr-name">—</div>
+        <div class="marker-type" id="sr-address">—</div>
+      </div>
+      <div class="marker-header-btns">
+        <button class="icon-btn" id="sr-close-btn">✕</button>
+      </div>
+    </div>
+    <div class="coord-block">
+      <div class="coord-row">
+        <div class="coord-tag">FMS</div>
+        <div class="coord-vals">
+          <span class="fms-val" id="sr-fms-lat">—</span>
+          <span class="fms-val" id="sr-fms-lng">—</span>
+        </div>
+      </div>
+      <div class="coord-row">
+        <div class="coord-tag">DMS</div>
+        <div class="coord-vals">
+          <span class="fms-val" id="sr-dms-lat">—</span>
+          <span class="fms-val" id="sr-dms-lng">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="sr-actions">
+      <button class="btn-secondary" id="sr-add-landing-btn">🅗 착륙장으로 추가</button>
+      <button class="btn-primary" id="sr-add-via-btn" style="display:none">📍 경유지로 추가</button>
     </div>
     <div class="sheet-bottom"></div>
   </div>
