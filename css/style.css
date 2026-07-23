@@ -232,7 +232,6 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .layer-dot.ctrz{background:#ff4444;border-radius:50%}
 .layer-dot.notice{background:#ffaa00;border-radius:50%}
 .layer-dot.notam{background:#cc66ff;border-radius:50%}
-.layer-dot.kmz{background:#ff33aa;border-radius:50%}
 .switch{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0}
 .switch input{opacity:0;width:0;height:0}
 .switch-track{position:absolute;inset:0;background:var(--border);border-radius:24px;transition:0.2s;cursor:pointer}
@@ -241,9 +240,6 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .switch input:checked + .switch-track::before{transform:translateX(18px)}
 .select-row{display:flex;align-items:center;justify-content:space-between;padding:12px 4px}
 .select-row select{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:6px 10px}
-.kmz-upload-row{display:flex;gap:8px;padding:10px 4px 0}
-.kmz-upload-row .btn-pick{flex:1;padding:10px;text-align:center}
-.kmz-status{font-size:11px;color:var(--dim);padding:6px 4px 0}
 .layer-export-row{padding:14px 4px 4px}
 .btn-block{width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);
   font-size:13px;font-weight:600;padding:11px;cursor:pointer;text-align:center}

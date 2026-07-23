@@ -3,14 +3,13 @@
   'use strict';
 
   var map = null;
-  var markers = { sk: [], land: [], wp: [], cp: [], ctrz: [], airspace_notice: [], notam: [], kmz: [] };
+  var markers = { sk: [], land: [], wp: [], cp: [], ctrz: [], airspace_notice: [], notam: [] };
   var AIRSPACE_KINDS = ['cp', 'ctrz', 'airspace_notice', 'notam'];
   var AIRSPACE_STYLE = {
     cp: '#00e5ff',
     ctrz: '#ff4444',
     airspace_notice: '#ffaa00',
-    notam: '#cc66ff',
-    kmz: '#ff33aa'
+    notam: '#cc66ff'
   };
   var allRouteLines = []; // 전체 경로(초록, 얇음) — 레이어 ON시만 지도에 부착
   var selectedPolyline = null; // 저장된 경로 선택 시(오렌지) — 레이어 설정과 무관하게 항상 표시
@@ -65,7 +64,7 @@
     };
   }
 
-  // geomType(Point/LineString/Polygon)에 따라 마커/폴리라인/폴리곤으로 렌더링 (공역 레이어, KMZ 공용)
+  // geomType(Point/LineString/Polygon)에 따라 마커/폴리라인/폴리곤으로 렌더링 (공역 레이어 공용)
   function renderGeomItems(items, kind, visible) {
     var color = AIRSPACE_STYLE[kind] || '#ffffff';
     return (items || []).map(function (item) {
@@ -175,11 +174,6 @@
     });
 
     renderAllRouteLines(layers.routesAll);
-  }
-
-  function renderKmzLayer(items, visible) {
-    clearMarkerGroup('kmz');
-    markers.kmz = renderGeomItems(items, 'kmz', visible);
   }
 
   function renderAllRouteLines(visible) {
@@ -312,7 +306,6 @@
     setViaPoints: setViaPoints,
     clearViaMarkers: clearViaMarkers,
     previewDraftRoute: previewDraftRoute,
-    clearDraftRoute: clearDraftRoute,
-    renderKmzLayer: renderKmzLayer
+    clearDraftRoute: clearDraftRoute
   };
 })(window);

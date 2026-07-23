@@ -6,7 +6,6 @@
   var LS_USER = 'skn_user_data';
   var LS_FAVS = 'skn_favorites';
   var LS_LAYERS = 'skn_layers';
-  var LS_KMZ = 'skn_kmz_data';
   var TYPES = ['sk_landings', 'landings', 'waypoints', 'routes'];
 
   var EMPTY_USER = function () {
@@ -137,19 +136,8 @@
     return !!f[routeName];
   }
 
-  // KMZ 업로드 데이터 (사용자가 가져온 KML/KMZ 지오메트리, 로컬에만 저장)
-  function getKmzData() {
-    try { return JSON.parse(localStorage.getItem(LS_KMZ) || 'null'); } catch (e) { return null; }
-  }
-  function setKmzData(fileName, items) {
-    localStorage.setItem(LS_KMZ, JSON.stringify({ fileName: fileName, items: items }));
-  }
-  function clearKmzData() {
-    localStorage.removeItem(LS_KMZ);
-  }
-
   // 레이어 표시 상태
-  var DEFAULT_LAYERS = { sk: true, land: true, wp: false, routesAll: false, cp: false, ctrz: false, airspace_notice: false, notam: false, kmz: true };
+  var DEFAULT_LAYERS = { sk: true, land: true, wp: false, routesAll: false, cp: false, ctrz: false, airspace_notice: false, notam: false };
   function getLayerState() {
     try {
       var raw = localStorage.getItem(LS_LAYERS);
@@ -346,9 +334,6 @@
     toggleFavorite: toggleFavorite,
     getLayerState: getLayerState,
     saveLayerState: saveLayerState,
-    getKmzData: getKmzData,
-    setKmzData: setKmzData,
-    clearKmzData: clearKmzData,
     nearestPointName: nearestPointName,
     exportMergedJson: exportMergedJson,
     get orphanedOverlay() { return orphanedOverlay; }

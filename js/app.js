@@ -68,8 +68,6 @@
       .then(function () {
         MapView.initMap(document.getElementById('map'));
         MapView.renderMarkers(UI.onMarkerClick);
-        var kmz = Data.getKmzData();
-        if (kmz) MapView.renderKmzLayer(kmz.items, Data.getLayerState().kmz);
         UI.init();
         hideLoading();
         if (Data.orphanedOverlay.length) {

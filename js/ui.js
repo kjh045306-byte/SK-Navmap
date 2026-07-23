@@ -378,22 +378,7 @@
     $id('layer-ctrz').checked = state.ctrz;
     $id('layer-airspace-notice').checked = state.airspace_notice;
     $id('layer-notam').checked = state.notam;
-    $id('layer-kmz').checked = state.kmz;
     $id('maptype-select').value = localStorage.getItem('skn_maptype') || 'hybrid';
-    syncKmzStatusUI();
-  }
-
-  function syncKmzStatusUI() {
-    var kmz = Data.getKmzData();
-    var statusEl = $id('kmz-status');
-    var clearBtn = $id('kmz-clear-btn');
-    if (kmz && kmz.items && kmz.items.length) {
-      statusEl.textContent = kmz.fileName + ' — ' + kmz.items.length + '개 항목 로드됨';
-      clearBtn.style.display = '';
-    } else {
-      statusEl.textContent = '업로드된 KMZ 없음';
-      clearBtn.style.display = 'none';
-    }
   }
 
   /* ── 착륙장/WP/경로 추가 폼 ── */
@@ -642,35 +627,9 @@
     $id('layer-ctrz').addEventListener('change', function () { MapView.setLayerVisible('ctrz', this.checked); });
     $id('layer-airspace-notice').addEventListener('change', function () { MapView.setLayerVisible('airspace_notice', this.checked); });
     $id('layer-notam').addEventListener('change', function () { MapView.setLayerVisible('notam', this.checked); });
-    $id('layer-kmz').addEventListener('change', function () { MapView.setLayerVisible('kmz', this.checked); });
     $id('maptype-select').addEventListener('change', function () {
       MapView.setMapType(this.value);
       localStorage.setItem('skn_maptype', this.value);
-    });
-
-    // KMZ 업로드
-    $id('kmz-upload-btn').addEventListener('click', function () { $id('kmz-file-input').click(); });
-    $id('kmz-file-input').addEventListener('change', function () {
-      var file = this.files && this.files[0];
-      this.value = '';
-      if (!file) return;
-      toast('KMZ 파일 분석 중...');
-      KmzParser.parseFile(file).then(function (result) {
-        if (!result.items.length) { toast('가져올 수 있는 지오메트리가 없습니다'); return; }
-        Data.setKmzData(file.name, result.items);
-        MapView.renderKmzLayer(result.items, Data.getLayerState().kmz);
-        syncKmzStatusUI();
-        toast(result.items.length + '개 항목을 가져왔습니다');
-      }).catch(function (e) {
-        console.error(e);
-        toast('KMZ 파일을 읽을 수 없습니다: ' + e.message);
-      });
-    });
-    $id('kmz-clear-btn').addEventListener('click', function () {
-      Data.clearKmzData();
-      MapView.renderKmzLayer([], false);
-      syncKmzStatusUI();
-      toast('KMZ 데이터를 삭제했습니다');
     });
     $id('layer-export-btn').addEventListener('click', function () {
       Data.exportMergedJson();
