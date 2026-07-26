@@ -27,7 +27,7 @@
       global.__onGoogleMapsLoaded = function () { resolve(); };
       var s = document.createElement('script');
       s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey) +
-        '&v=weekly&libraries=places&callback=__onGoogleMapsLoaded&language=ko&region=KR';
+        '&libraries=places&callback=__onGoogleMapsLoaded&language=ko';
       s.async = true;
       s.onerror = function () { reject(new Error('Google Maps 스크립트 로드에 실패했습니다.')); };
       document.head.appendChild(s);
