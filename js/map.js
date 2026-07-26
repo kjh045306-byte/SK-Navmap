@@ -55,8 +55,7 @@
     return { url: markerIconUrl(kind), scaledSize: new google.maps.Size(30, 30), anchor: new google.maps.Point(15, 15) };
   }
 
-  function airspaceIcon(kind) {
-    var color = AIRSPACE_STYLE[kind] || '#ffffff';
+  function airspaceIcon(color) {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">' +
       '<circle cx="7" cy="7" r="5" fill="' + color + '" stroke="#ffffff" stroke-width="1.5"/></svg>';
     return {
@@ -67,14 +66,16 @@
   }
 
   // geomType(Point/LineString/Polygon)에 따라 마커/폴리라인/폴리곤으로 렌더링 (공역 레이어 공용)
+  // 항목별 color(구글어스 원본 색상)가 있으면 우선 사용, 없으면 카테고리 고정색으로 대체
   function renderGeomItems(items, kind, visible) {
-    var color = AIRSPACE_STYLE[kind] || '#ffffff';
+    var fallback = AIRSPACE_STYLE[kind] || '#ffffff';
     return (items || []).map(function (item) {
+      var color = item.color || fallback;
       if (item.geomType === 'Point') {
         return new google.maps.Marker({
           position: { lat: item.lat, lng: item.lng },
           map: visible ? map : null,
-          icon: airspaceIcon(kind),
+          icon: airspaceIcon(color),
           title: item.name,
           zIndex: 2
         });
@@ -82,7 +83,7 @@
       if (item.geomType === 'Polygon') {
         return new google.maps.Polygon({
           paths: item.coords,
-          strokeColor: color, strokeWeight: 2, strokeOpacity: 0.9,
+          strokeColor: item.strokeColor || color, strokeWeight: 2, strokeOpacity: 0.9,
           fillColor: color, fillOpacity: 0.12,
           map: visible ? map : null,
           zIndex: 2
@@ -181,6 +182,7 @@
     map.addListener('click', function (e) {
       if (mapClickHandler) mapClickHandler({ lat: e.latLng.lat(), lng: e.latLng.lng() });
     });
+
     return map;
   }
 

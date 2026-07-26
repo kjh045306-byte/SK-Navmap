@@ -4582,6 +4582,7 @@
       "geomType": "Point",
       "lat": 37.526149,
       "lng": 127.06424,
+      "color": "#6699FF",
       "id": "cp_a83deeba"
     },
     {
@@ -4591,6 +4592,7 @@
       "geomType": "Point",
       "lat": 37.497712,
       "lng": 127.073752,
+      "color": "#6699FF",
       "id": "cp_db9c3fdd"
     },
     {
@@ -4600,6 +4602,7 @@
       "geomType": "Point",
       "lat": 37.47166,
       "lng": 127.032141,
+      "color": "#6699FF",
       "id": "cp_c7f95461"
     },
     {
@@ -4609,6 +4612,7 @@
       "geomType": "Point",
       "lat": 37.61523,
       "lng": 127.141677,
+      "color": "#6699FF",
       "id": "cp_397705dc"
     },
     {
@@ -4618,6 +4622,7 @@
       "geomType": "Point",
       "lat": 37.580182,
       "lng": 127.159463,
+      "color": "#6699FF",
       "id": "cp_72b75aee"
     },
     {
@@ -4627,6 +4632,7 @@
       "geomType": "Point",
       "lat": 37.542989,
       "lng": 127.111872,
+      "color": "#6699FF",
       "id": "cp_67680b46"
     },
     {
@@ -4636,6 +4642,7 @@
       "geomType": "Point",
       "lat": 37.524105,
       "lng": 127.091847,
+      "color": "#6699FF",
       "id": "cp_d47bd6de"
     }
   ],
@@ -4939,6 +4946,7 @@
           "lng": 127.22633
         }
       ],
+      "color": "#00FF00",
       "id": "ctrz_94656967"
     },
     {
@@ -5240,6 +5248,7 @@
           "lng": 127.266533
         }
       ],
+      "color": "#00FF00",
       "id": "ctrz_7a2b62e1"
     },
     {
@@ -5541,6 +5550,7 @@
           "lng": 127.671357
         }
       ],
+      "color": "#00FF00",
       "id": "ctrz_a8808305"
     },
     {
@@ -5842,6 +5852,7 @@
           "lng": 127.940916
         }
       ],
+      "color": "#00FF00",
       "id": "ctrz_c28fcf96"
     },
     {
@@ -6143,6 +6154,7 @@
           "lng": 128.686781
         }
       ],
+      "color": "#00FF00",
       "id": "ctrz_9f9e1303"
     },
     {
@@ -6152,6 +6164,7 @@
       "geomType": "Point",
       "lat": 37.552959,
       "lng": 126.607424,
+      "color": "#FFD500",
       "id": "ctrz_7b449326"
     },
     {
@@ -6161,6 +6174,7 @@
       "geomType": "Point",
       "lat": 37.391692,
       "lng": 126.780887,
+      "color": "#FFD500",
       "id": "ctrz_27516e6c"
     },
     {
@@ -6170,6 +6184,7 @@
       "geomType": "Point",
       "lat": 37.368831,
       "lng": 126.869064,
+      "color": "#FFD500",
       "id": "ctrz_9d2d7416"
     },
     {
@@ -6179,6 +6194,7 @@
       "geomType": "Point",
       "lat": 37.52409,
       "lng": 126.751218,
+      "color": "#FFD500",
       "id": "ctrz_41dec280"
     },
     {
@@ -6188,6 +6204,7 @@
       "geomType": "Point",
       "lat": 37.582696,
       "lng": 126.804021,
+      "color": "#FFD500",
       "id": "ctrz_a1b2a85f"
     },
     {
@@ -6197,6 +6214,7 @@
       "geomType": "Point",
       "lat": 37.599188,
       "lng": 126.81112,
+      "color": "#FFD500",
       "id": "ctrz_341ffc5f"
     },
     {
@@ -6206,6 +6224,7 @@
       "geomType": "Point",
       "lat": 37.39619,
       "lng": 126.737123,
+      "color": "#FFD500",
       "id": "ctrz_32931620"
     },
     {
@@ -6215,6 +6234,7 @@
       "geomType": "Point",
       "lat": 37.472895,
       "lng": 126.600247,
+      "color": "#FFD500",
       "id": "ctrz_8f307be6"
     },
     {
@@ -6224,6 +6244,7 @@
       "geomType": "Point",
       "lat": 37.332594,
       "lng": 126.689619,
+      "color": "#FFD500",
       "id": "ctrz_84bc2260"
     },
     {
@@ -6233,6 +6254,7 @@
       "geomType": "Point",
       "lat": 37.456863,
       "lng": 126.489774,
+      "color": "#FFD500",
       "id": "ctrz_e50cea69"
     },
     {
@@ -6242,6 +6264,7 @@
       "geomType": "Point",
       "lat": 37.480159,
       "lng": 126.554362,
+      "color": "#FFD500",
       "id": "ctrz_03c46f4d"
     },
     {
@@ -6251,6 +6274,7 @@
       "geomType": "Point",
       "lat": 35.278711,
       "lng": 126.756294,
+      "color": "#FFCC00",
       "id": "ctrz_632ed2b1"
     },
     {
@@ -6260,6 +6284,7 @@
       "geomType": "Point",
       "lat": 37.496461,
       "lng": 127.083997,
+      "color": "#FFD500",
       "id": "ctrz_5663d19b"
     },
     {
@@ -6269,6 +6294,7 @@
       "geomType": "Point",
       "lat": 37.349496,
       "lng": 127.102018,
+      "color": "#FFD500",
       "id": "ctrz_d0fcff8c"
     },
     {
@@ -6278,6 +6304,7 @@
       "geomType": "Point",
       "lat": 37.392527,
       "lng": 127.053033,
+      "color": "#FFD500",
       "id": "ctrz_f45e2571"
     },
     {
@@ -6287,6 +6314,7 @@
       "geomType": "Point",
       "lat": 37.46346,
       "lng": 127.039932,
+      "color": "#FFD500",
       "id": "ctrz_546f1d92"
     },
     {
@@ -6296,6 +6324,7 @@
       "geomType": "Point",
       "lat": 37.415509,
       "lng": 127.085046,
+      "color": "#FFD500",
       "id": "ctrz_a2b435d7"
     },
     {
@@ -6305,6 +6334,7 @@
       "geomType": "Point",
       "lat": 37.289735,
       "lng": 127.103757,
+      "color": "#FFD500",
       "id": "ctrz_10ee3720"
     },
     {
@@ -6314,6 +6344,7 @@
       "geomType": "Point",
       "lat": 37.328624,
       "lng": 126.984755,
+      "color": "#FFD500",
       "id": "ctrz_bce519b9"
     },
     {
@@ -6323,6 +6354,7 @@
       "geomType": "Point",
       "lat": 37.310863,
       "lng": 127.022944,
+      "color": "#FFD500",
       "id": "ctrz_dd85eaae"
     },
     {
@@ -6332,6 +6364,7 @@
       "geomType": "Point",
       "lat": 37.392541,
       "lng": 127.852174,
+      "color": "#FFD500",
       "id": "ctrz_21b9db57"
     },
     {
@@ -6341,6 +6374,7 @@
       "geomType": "Point",
       "lat": 37.372532,
       "lng": 127.970049,
+      "color": "#FFD500",
       "id": "ctrz_387fa017"
     },
     {
@@ -6642,6 +6676,7 @@
           "lng": 128.575926
         }
       ],
+      "color": "#00FFFF",
       "id": "ctrz_66179de4"
     },
     {
@@ -6651,6 +6686,7 @@
       "geomType": "Point",
       "lat": 37.95,
       "lng": 128.686111,
+      "color": "#FFD500",
       "id": "ctrz_a3325c92"
     },
     {
@@ -6660,6 +6696,7 @@
       "geomType": "Point",
       "lat": 38.037778,
       "lng": 128.801944,
+      "color": "#FFD500",
       "id": "ctrz_e2aed66a"
     },
     {
@@ -6669,6 +6706,7 @@
       "geomType": "Point",
       "lat": 38.116389,
       "lng": 128.635278,
+      "color": "#FFD500",
       "id": "ctrz_6d6d597a"
     },
     {
@@ -6678,6 +6716,7 @@
       "geomType": "Point",
       "lat": 37.871389,
       "lng": 128.731389,
+      "color": "#FFD500",
       "id": "ctrz_7e4d5a1b"
     },
     {
@@ -6687,6 +6726,7 @@
       "geomType": "Point",
       "lat": 38.004167,
       "lng": 128.836111,
+      "color": "#FFD500",
       "id": "ctrz_79a9fe7d"
     },
     {
@@ -6696,6 +6736,7 @@
       "geomType": "Point",
       "lat": 38.131944,
       "lng": 128.726389,
+      "color": "#FFD500",
       "id": "ctrz_a6fa1ea2"
     },
     {
@@ -6705,6 +6746,7 @@
       "geomType": "Point",
       "lat": 38.083333,
       "lng": 128.595556,
+      "color": "#FFD500",
       "id": "ctrz_d378e229"
     },
     {
@@ -6714,6 +6756,7 @@
       "geomType": "Point",
       "lat": 37.998889,
       "lng": 128.654722,
+      "color": "#FFD500",
       "id": "ctrz_6091b073"
     },
     {
@@ -6723,6 +6766,7 @@
       "geomType": "Point",
       "lat": 38.053056,
       "lng": 128.620833,
+      "color": "#FFD500",
       "id": "ctrz_51def858"
     },
     {
@@ -6732,6 +6776,7 @@
       "geomType": "Point",
       "lat": 35.893482,
       "lng": 128.524909,
+      "color": "#FFD500",
       "id": "ctrz_ace4b780"
     },
     {
@@ -6741,6 +6786,7 @@
       "geomType": "Point",
       "lat": 35.193155,
       "lng": 128.84059,
+      "color": "#FFD500",
       "id": "ctrz_8dc95f6a"
     },
     {
@@ -6750,6 +6796,7 @@
       "geomType": "Point",
       "lat": 35.219558,
       "lng": 128.796239,
+      "color": "#FFD500",
       "id": "ctrz_a3616d80"
     },
     {
@@ -6759,6 +6806,7 @@
       "geomType": "Point",
       "lat": 35.619178,
       "lng": 129.228353,
+      "color": "#FFD500",
       "id": "ctrz_48d68a45"
     },
     {
@@ -6768,6 +6816,7 @@
       "geomType": "Point",
       "lat": 35.535427,
       "lng": 129.259534,
+      "color": "#FFD500",
       "id": "ctrz_f114647a"
     },
     {
@@ -6777,6 +6826,7 @@
       "geomType": "Point",
       "lat": 35.592001,
       "lng": 129.271487,
+      "color": "#FFD500",
       "id": "ctrz_ee5e42ab"
     }
   ],
@@ -6788,6 +6838,7 @@
       "geomType": "Point",
       "lat": 37.535833,
       "lng": 126.977222,
+      "color": "#DC3912",
       "id": "as_42b7f070"
     },
     {
@@ -7089,6 +7140,7 @@
           "lng": 126.988415
         }
       ],
+      "color": "#FF0000",
       "id": "as_48f0a869"
     },
     {
@@ -7098,6 +7150,7 @@
       "geomType": "Point",
       "lat": 37.542222,
       "lng": 126.995278,
+      "color": "#DC3912",
       "id": "as_dfb670c1"
     },
     {
@@ -7399,6 +7452,7 @@
           "lng": 127.008826
         }
       ],
+      "color": "#FF0000",
       "id": "as_d78c081d"
     },
     {
@@ -7408,6 +7462,7 @@
       "geomType": "Point",
       "lat": 37.583333,
       "lng": 126.983333,
+      "color": "#DC3912",
       "id": "as_e6093959"
     },
     {
@@ -7709,6 +7764,7 @@
           "lng": 126.996259
         }
       ],
+      "color": "#FF0000",
       "id": "as_c5e165bb"
     }
   ],
@@ -7784,6 +7840,8 @@
           "lng": 126.806758
         }
       ],
+      "color": "#FFFFFF",
+      "strokeColor": "#FFFF00",
       "id": "notam_27058e14"
     },
     {
@@ -7793,6 +7851,7 @@
       "geomType": "Point",
       "lat": 37.663611,
       "lng": 126.806667,
+      "color": "#FFCC00",
       "id": "notam_be966c31"
     },
     {
@@ -7802,6 +7861,7 @@
       "geomType": "Point",
       "lat": 37.631111,
       "lng": 126.803611,
+      "color": "#FFCC00",
       "id": "notam_b5f6f46f"
     },
     {
@@ -7811,6 +7871,7 @@
       "geomType": "Point",
       "lat": 37.616944,
       "lng": 126.798333,
+      "color": "#FFCC00",
       "id": "notam_948355d7"
     },
     {
@@ -7820,6 +7881,7 @@
       "geomType": "Point",
       "lat": 37.591667,
       "lng": 126.804722,
+      "color": "#FFCC00",
       "id": "notam_f8e30baf"
     },
     {
@@ -7829,6 +7891,7 @@
       "geomType": "Point",
       "lat": 37.569167,
       "lng": 126.806667,
+      "color": "#FFCC00",
       "id": "notam_e6a9ad78"
     },
     {
@@ -7838,6 +7901,7 @@
       "geomType": "Point",
       "lat": 37.448056,
       "lng": 126.956111,
+      "color": "#FFCC00",
       "id": "notam_88c3a62a"
     },
     {
@@ -7847,6 +7911,7 @@
       "geomType": "Point",
       "lat": 37.448056,
       "lng": 127.060556,
+      "color": "#FFCC00",
       "id": "notam_7a3d3ed5"
     },
     {
@@ -7856,6 +7921,7 @@
       "geomType": "Point",
       "lat": 37.5425,
       "lng": 127.113056,
+      "color": "#FFCC00",
       "id": "notam_2e19d791"
     },
     {
@@ -7865,6 +7931,7 @@
       "geomType": "Point",
       "lat": 37.579722,
       "lng": 127.158333,
+      "color": "#FFCC00",
       "id": "notam_2feed30d"
     },
     {
@@ -7874,6 +7941,7 @@
       "geomType": "Point",
       "lat": 37.615556,
       "lng": 127.141667,
+      "color": "#FFCC00",
       "id": "notam_a5d7e1a0"
     },
     {
@@ -7883,6 +7951,7 @@
       "geomType": "Point",
       "lat": 37.640833,
       "lng": 127.133333,
+      "color": "#FFCC00",
       "id": "notam_1ab5e4dd"
     },
     {
@@ -7892,6 +7961,7 @@
       "geomType": "Point",
       "lat": 37.675833,
       "lng": 127.086944,
+      "color": "#FFCC00",
       "id": "notam_11180fa2"
     },
     {
@@ -7901,6 +7971,7 @@
       "geomType": "Point",
       "lat": 37.693333,
       "lng": 127.054722,
+      "color": "#FFCC00",
       "id": "notam_628121aa"
     },
     {
@@ -7910,6 +7981,7 @@
       "geomType": "Point",
       "lat": 37.7,
       "lng": 127.027778,
+      "color": "#FFCC00",
       "id": "notam_f655887b"
     },
     {
@@ -7919,6 +7991,7 @@
       "geomType": "Point",
       "lat": 37.632778,
       "lng": 126.883056,
+      "color": "#FFCC00",
       "id": "notam_e5701b0d"
     },
     {
@@ -8220,6 +8293,7 @@
           "lng": 127.28049
         }
       ],
+      "color": "#FFFF00",
       "id": "notam_06465710"
     },
     {
@@ -8229,6 +8303,7 @@
       "geomType": "Point",
       "lat": 37.360556,
       "lng": 127.256389,
+      "color": "#FFCC00",
       "id": "notam_31fb8ef2"
     },
     {
@@ -8530,6 +8605,7 @@
           "lng": 127.382895
         }
       ],
+      "color": "#FF0000",
       "id": "notam_1d227c1c"
     },
     {
@@ -8831,6 +8907,7 @@
           "lng": 127.937846
         }
       ],
+      "color": "#FF0000",
       "id": "notam_8ef47bcf"
     },
     {
@@ -8864,6 +8941,8 @@
           "lng": 127.500112
         }
       ],
+      "color": "#FF0000",
+      "strokeColor": "#FF0000",
       "id": "notam_782b8431"
     },
     {
@@ -8873,6 +8952,7 @@
       "geomType": "Point",
       "lat": 37.366667,
       "lng": 127.5,
+      "color": "#FFCC00",
       "id": "notam_f044d408"
     },
     {
@@ -8882,6 +8962,7 @@
       "geomType": "Point",
       "lat": 37.416667,
       "lng": 127.583333,
+      "color": "#FFCC00",
       "id": "notam_ec595acb"
     },
     {
@@ -8891,6 +8972,7 @@
       "geomType": "Point",
       "lat": 37.25,
       "lng": 127.5,
+      "color": "#FFCC00",
       "id": "notam_61770a77"
     },
     {
@@ -8900,6 +8982,7 @@
       "geomType": "Point",
       "lat": 37.416667,
       "lng": 127.75,
+      "color": "#FFCC00",
       "id": "notam_ff6ca877"
     },
     {
@@ -8909,6 +8992,7 @@
       "geomType": "Point",
       "lat": 37.25,
       "lng": 127.75,
+      "color": "#FFCC00",
       "id": "notam_5047155c"
     },
     {
@@ -9210,6 +9294,7 @@
           "lng": 127.811696
         }
       ],
+      "color": "#FF0000",
       "id": "notam_ab690ce1"
     },
     {
@@ -9511,6 +9596,7 @@
           "lng": 127.870161
         }
       ],
+      "color": "#FF0000",
       "id": "notam_72c6aa01"
     }
   ]
