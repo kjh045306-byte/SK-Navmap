@@ -25,6 +25,7 @@
   var lpDraftName = null; // 자동 생성된 임시경로 이름 (예: Route01)
   var lpOrder = []; // 추가된 순서('dep'|'via') — "마지막 점 취소" 버튼이 참조
   var lpSnapCandidate = null; // { near, raw } — 근처지점 스냅 확인 대기 중일 때
+  var lpEditMode = false; // 저장된 경로를 지도에서 직접 편집 중인지 (드래그/롱프레스 재지정 + 저장 버튼)
 
   function $(sel) { return document.querySelector(sel); }
   function $id(id) { return document.getElementById(id); }
@@ -186,6 +187,7 @@
     renderViaList();
     updateDraftPreview();
     updateComposeStats();
+    refreshMidpointMarkers();
   }
 
   // 출발/도착/경유점이 모두 갖춰지면 노란색 미리보기 선을 그린다 (저장 전 임시 경로)
@@ -218,13 +220,51 @@
     sel.value = point.name;
     if (role === 'dep') {
       selectedDepPoint = point;
-      MapView.setDepMarker(point);
+      MapView.setDepMarker(point, true, onDepDrag);
     } else {
       selectedArrPoint = point;
-      MapView.setArrMarker(point);
+      MapView.setArrMarker(point, true, onArrDrag);
     }
     updateDraftPreview();
     updateComposeStats();
+    refreshMidpointMarkers();
+  }
+
+  // 출발/도착 마커 드래그 종료 → 좌표만 갱신 (이름은 저장 시 쓰이지 않으므로 그대로 둔다)
+  function onDepDrag(latlng) {
+    if (!selectedDepPoint) return;
+    selectedDepPoint = { name: selectedDepPoint.name, lat: latlng.lat, lng: latlng.lng };
+    updateDraftPreview();
+    updateComposeStats();
+    refreshMidpointMarkers();
+  }
+  function onArrDrag(latlng) {
+    if (!selectedArrPoint) return;
+    selectedArrPoint = { name: selectedArrPoint.name, lat: latlng.lat, lng: latlng.lng };
+    updateDraftPreview();
+    updateComposeStats();
+    refreshMidpointMarkers();
+  }
+
+  // 편집모드(출발+도착이 모두 있을 때)에서 구간별 "+" 삽입 아이콘 위치를 재계산한다
+  function refreshMidpointMarkers() {
+    if (!lpFlowActive || !selectedDepPoint || !selectedArrPoint) { MapView.clearMidpointMarkers(); return; }
+    var seq = [{ lat: selectedDepPoint.lat, lng: selectedDepPoint.lng }]
+      .concat(viaPoints)
+      .concat([{ lat: selectedArrPoint.lat, lng: selectedArrPoint.lng }]);
+    MapView.setMidpointMarkers(seq);
+  }
+
+  // 구간 중앙의 "+" 아이콘 탭 → 그 구간(segIndex번째)에 새 경유점을 두 지점의 중간 좌표로 삽입
+  function insertViaAtSegment(segIndex) {
+    var seq = [selectedDepPoint].concat(viaPoints).concat([selectedArrPoint]);
+    var a = seq[segIndex], b = seq[segIndex + 1];
+    if (!a || !b) return;
+    var mid = { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
+    viaPoints.splice(segIndex, 0, mid);
+    lpOrder.push('via');
+    syncViaUI();
+    toast('경유점이 추가되었습니다');
   }
 
   function coordPointName(latlng) {
@@ -245,7 +285,10 @@
   function showComposeBar() {
     $id('action-row-normal').style.display = 'none';
     $id('compose-row').style.display = 'flex';
-    $id('compose-title').textContent = lpDraftName + ' 작성 중';
+    $id('compose-title').textContent = lpDraftName + (lpEditMode ? ' 편집 중' : ' 작성 중');
+    $id('compose-undo-btn').style.display = lpEditMode ? 'none' : 'flex';
+    $id('compose-save-btn').style.display = lpEditMode ? 'flex' : 'none';
+    updateComposeStats();
   }
 
   function hideComposeBar() {
@@ -339,7 +382,11 @@
       toast('출발지로 지정되었습니다');
     } else if (role === 'arr') {
       setDepArrPoint('arr', point);
-      finalizeLpDraft();
+      if (lpEditMode) {
+        toast('도착지가 재지정되었습니다');
+      } else {
+        finalizeLpDraft();
+      }
       return;
     } else {
       lpOrder.push('via');
@@ -366,9 +413,11 @@
     if (!selectedDepPoint && !viaPoints.length) lpCancelDraft();
   }
 
-  // 작성 중인 임시경로 전체를 취소하고 초기 상태로 되돌린다
+  // 작성/편집 중인 임시경로를 전체 취소하고 초기 상태로 되돌린다 (편집모드였다면 원본 경로는 그대로 유지됨)
   function lpCancelDraft() {
     lpFlowActive = false;
+    lpEditMode = false;
+    editingRouteId = null;
     lpOrder = [];
     lpDraftName = null;
     viaPoints = [];
@@ -381,6 +430,7 @@
     MapView.clearDraftRoute();
     MapView.clearDepMarker();
     MapView.clearArrMarker();
+    MapView.clearMidpointMarkers();
     hideComposeBar();
   }
 
@@ -686,19 +736,27 @@
   }
 
   // 항법경로 수정 폼 열기 (기존 경유점/출발/도착/메모를 채워서 add-route-sheet 재사용)
+  // 저장된 경로를 지도에서 직접 편집: 출발(S)/경유(①②..)/도착(E) 마커를 드래그 가능하게 표시하고,
+  // 지도 누르기유지로 역할을 재지정할 수도 있게 한다. 이름/메모는 유지되고 좌표만 바뀐다 (id 기반 편집 재사용)
   function openEditRoute(r) {
+    document.querySelectorAll('.sheet.open').forEach(function (s) { closeSheet(s.id); }); // 편집 중엔 지도가 인터랙션 가능해야 함
     populatePointSelects();
     editingRouteId = r.id;
+    lpEditMode = true;
+    lpFlowActive = true;
+    lpDraftName = r.name;
+    lpOrder = [];
+    routeComposeActive = true;
     $id('ar-name').value = r.name;
+    $id('ar-memo').value = r.memo || '';
+    MapView.selectRoute(r);
+    selectedRouteId = r.id;
     setDepArrPoint('dep', Data.ALL_POINTS.find(function (p) { return p.name === r.depName; }) || { name: r.depName, lat: r.dep.lat, lng: r.dep.lng });
     setDepArrPoint('arr', Data.ALL_POINTS.find(function (p) { return p.name === r.arrName; }) || { name: r.arrName, lat: r.arr.lat, lng: r.arr.lng });
-    $id('ar-memo').value = r.memo || '';
     viaPoints = (r.coords || []).slice(1, -1).map(function (c) { return { lat: c.lat, lng: c.lng }; });
-    $id('add-route-sheet').querySelector('.sheet-title').textContent = '항법경로 수정';
-    closeSheet('route-sheet');
-    openSheet('add-route-sheet');
-    routeComposeActive = true;
+    showComposeBar();
     syncViaUI();
+    toast('편집모드: 마커를 드래그하거나 지도를 누르기유지해 재지정하세요');
   }
 
   function renderRouteList() {
@@ -786,11 +844,13 @@
     editingRouteId = null;
     routeComposeActive = false;
     lpFlowActive = false;
+    lpEditMode = false;
     lpOrder = [];
     lpDraftName = null;
     hideComposeBar();
     MapView.clearDepMarker();
     MapView.clearArrMarker();
+    MapView.clearMidpointMarkers();
     $id('add-route-sheet').querySelector('.sheet-title').textContent = '새 항법경로';
     syncViaUI();
   }
@@ -1060,6 +1120,14 @@
       closeSheet('lp-save-sheet');
       lpCancelDraft();
     });
+
+    // 편집모드: 하단 액션바의 "💾 저장" — 기존 저장 로직(saveNewRoute)을 그대로 재사용해 id 기준으로 업데이트
+    $id('compose-save-btn').addEventListener('click', saveNewRoute);
+
+    // 경유점 마커: 어느 흐름(구 드롭다운/신규 롱프레스/편집모드)에서든 드래그·탭 삭제가 항상 동작하도록 앱 시작 시 한 번만 연결
+    MapView.setViaPointCallbacks(onViaDrag, onViaMarkerClick);
+    // 편집모드 구간 "+" 아이콘 탭 → 경유점 삽입
+    MapView.setMidpointCallback(insertViaAtSegment);
     function pointFromSelect(sel) {
       var registered = Data.ALL_POINTS.find(function (p) { return p.name === sel.value; });
       if (registered) return registered;

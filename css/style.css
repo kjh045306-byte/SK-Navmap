@@ -116,6 +116,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .compose-main-title{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .compose-main-sub{font-size:12px;font-weight:700;color:var(--sk-orange);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fab-undo{background:rgba(255,255,255,0.1);color:#fff;border:1px solid var(--border);font-size:18px}
+.fab-save{background:var(--sk-orange);color:#fff;font-size:18px}
 .fab-cancel{background:rgba(255,85,85,0.15);color:#ff5555;border:1px solid rgba(255,85,85,0.35);font-size:18px}
 
 /* ══════════════════════════ 바텀시트 공통 ══════════════════════════ */

@@ -101,31 +101,85 @@
     };
   }
 
-  function setDepMarker(point) {
+  // draggable(옵션)이면 드래그 종료 시 onDragEnd({lat,lng})를 호출 — 편집모드에서 좌표 조정용
+  function setDepMarker(point, draggable, onDragEnd) {
     clearDepMarker();
     if (!point) return;
     depMarker = new google.maps.Marker({
       position: { lat: point.lat, lng: point.lng },
       map: map,
       icon: endpointIcon('dep'),
+      draggable: !!draggable,
       title: '출발지: ' + (point.name || ''),
       zIndex: 22
     });
+    if (draggable && onDragEnd) {
+      depMarker.addListener('dragend', function (e) { onDragEnd({ lat: e.latLng.lat(), lng: e.latLng.lng() }); });
+    }
   }
   function clearDepMarker() { if (depMarker) { depMarker.setMap(null); depMarker = null; } }
 
-  function setArrMarker(point) {
+  function setArrMarker(point, draggable, onDragEnd) {
     clearArrMarker();
     if (!point) return;
     arrMarker = new google.maps.Marker({
       position: { lat: point.lat, lng: point.lng },
       map: map,
       icon: endpointIcon('arr'),
+      draggable: !!draggable,
       title: '도착지: ' + (point.name || ''),
       zIndex: 22
     });
+    if (draggable && onDragEnd) {
+      arrMarker.addListener('dragend', function (e) { onDragEnd({ lat: e.latLng.lat(), lng: e.latLng.lng() }); });
+    }
   }
   function clearArrMarker() { if (arrMarker) { arrMarker.setMap(null); arrMarker = null; } }
+
+  // ── 편집모드: 구간(점-점 사이) 중앙의 "+" 아이콘 — 탭하면 그 구간에 경유점을 삽입 ──
+  var midMarkers = [];
+  var midClickHandler = null; // ui.js 콜백(segIndex) — segIndex번째 구간(점[segIndex]~점[segIndex+1]) 클릭 시 호출
+
+  function plusIcon() {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">' +
+      '<circle cx="16" cy="16" r="11" fill="#ffffff" fill-opacity="0.95" stroke="#FF6B00" stroke-width="2.5"/>' +
+      '<path d="M16 9 V23 M9 16 H23" stroke="#FF6B00" stroke-width="3" stroke-linecap="round"/>' +
+      '</svg>';
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(32, 32), // 모바일 최소 터치영역(32x32) 확보
+      anchor: new google.maps.Point(16, 16)
+    };
+  }
+
+  function setMidpointCallback(fn) { midClickHandler = fn; }
+
+  function clearMidpointMarkers() {
+    midMarkers.forEach(function (m) { m.setMap(null); });
+    midMarkers = [];
+  }
+
+  // points: 순서대로 배열된 전체 지점 [dep, ...via, arr] — 각 구간 중점에 + 아이콘을 그린다
+  function setMidpointMarkers(points) {
+    clearMidpointMarkers();
+    if (!points || points.length < 2) return;
+    for (var i = 0; i < points.length - 1; i++) {
+      var midLat = (points[i].lat + points[i + 1].lat) / 2;
+      var midLng = (points[i].lng + points[i + 1].lng) / 2;
+      (function (segIndex) {
+        var mk = new google.maps.Marker({
+          position: { lat: midLat, lng: midLng },
+          map: map,
+          icon: plusIcon(),
+          zIndex: 18
+        });
+        mk.addListener('click', function () {
+          if (midClickHandler) midClickHandler(segIndex);
+        });
+        midMarkers.push(mk);
+      })(i);
+    }
+  }
 
   function loadGoogleMaps(apiKey) {
     return new Promise(function (resolve, reject) {
@@ -502,6 +556,9 @@
     clearDepMarker: clearDepMarker,
     setArrMarker: setArrMarker,
     clearArrMarker: clearArrMarker,
+    setMidpointCallback: setMidpointCallback,
+    setMidpointMarkers: setMidpointMarkers,
+    clearMidpointMarkers: clearMidpointMarkers,
     setRoutePointClickHandler: setRoutePointClickHandler,
     clearRoutePointClickHandler: clearRoutePointClickHandler,
     setMarkerDraggable: setMarkerDraggable,
