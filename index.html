@@ -101,10 +101,41 @@
   <div class="sheet-panel">
     <div class="sheet-handle"></div>
     <div class="sheet-title" id="lp-role-title">이 지점을 어떻게 사용할까요?</div>
-    <div class="lp-role-list">
+    <!-- 근처 등록지점 자동 스냅 확인 카드 (반경 안에 있을 때만 표시) -->
+    <div class="lp-snap-card" id="lp-snap-card" style="display:none">
+      <div class="lp-snap-text">근처 지점: <b id="lp-snap-name">—</b></div>
+      <div class="lp-snap-sub">이 지점을 사용하시겠어요?</div>
+      <div class="lp-snap-btns">
+        <button class="lp-snap-btn yes" id="lp-snap-yes">네, 이 지점 사용</button>
+        <button class="lp-snap-btn no" id="lp-snap-no">아니오, 새 지점 사용</button>
+      </div>
+    </div>
+    <div class="lp-role-list" id="lp-role-list">
       <button class="lp-role-btn dep" id="lp-role-dep">🛫 출발지로 지정</button>
       <button class="lp-role-btn via" id="lp-role-via">📍 경유지로 지정</button>
       <button class="lp-role-btn arr" id="lp-role-arr">🛬 도착지로 지정</button>
+    </div>
+    <div class="sheet-bottom"></div>
+  </div>
+</div>
+
+<!-- ── 지도 누르기유지: 도착지 지정 완료 → 저장 확인 바텀시트 ── -->
+<div class="sheet" id="lp-save-sheet">
+  <div class="sheet-overlay"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">항법경로 저장</div>
+    <div class="lp-save-body">
+      <div class="lp-save-name-wrap">
+        <div class="lp-save-name" id="lp-save-name-label">Route01</div>
+        <input class="lp-save-name-input" id="lp-save-name-input" style="display:none">
+      </div>
+      <div class="lp-save-route" id="lp-save-route">— → —</div>
+      <div class="lp-save-stats" id="lp-save-stats">거리 —NM · —분</div>
+      <div class="form-actions">
+        <button class="btn-secondary" id="lp-save-cancel-btn">취소</button>
+        <button class="btn-primary" id="lp-save-confirm-btn">저장</button>
+      </div>
     </div>
     <div class="sheet-bottom"></div>
   </div>

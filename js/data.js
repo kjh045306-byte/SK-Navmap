@@ -149,17 +149,23 @@
     localStorage.setItem(LS_LAYERS, JSON.stringify(state));
   }
 
-  // 경로명 "출발-도착(CODE)" → {dep,arr} 문자열 파싱 (좌표 매칭 실패 시 대체용)
+  // 경로명 "출발-도착(CODE)" → {dep,arr} 문자열 파싱. 이름에 "-" 구분이 없으면(자유 입력 이름)
+  // dep/arr를 같은 문자열로 뭉뚱그리지 않도록 null을 반환해 좌표 기반 이름으로 대체하게 한다
   function parseRouteName(name) {
     var idx = name.indexOf('-');
-    if (idx < 0) return { dep: name, arr: name };
+    if (idx < 0) return { dep: null, arr: null };
     var dep = name.slice(0, idx).trim();
     var arr = name.slice(idx + 1).replace(/\([^)]*\)\s*$/, '').trim();
     return { dep: dep, arr: arr };
   }
 
-  // 좌표에 가장 가까운 등록 지점 이름 찾기 (1NM 이내)
-  function nearestPointName(lat, lng, maxNm) {
+  // 등록된 지점과도, 파싱된 이름과도 매칭되지 않을 때 최종 대체용 좌표 표기
+  function coordLabel(lat, lng) {
+    return '좌표 ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+  }
+
+  // 좌표에 가장 가까운 등록 지점(SK착륙장/착륙장/WayPoint) 찾기 — { name, lat, lng, kind } 또는 없으면 null
+  function nearestPoint(lat, lng, maxNm) {
     maxNm = maxNm || 1.0;
     var best = null, bestD = Infinity;
     for (var i = 0; i < ALL_POINTS.length; i++) {
@@ -167,8 +173,14 @@
       var d = Calc.haversineNM(lat, lng, p.lat, p.lng);
       if (d < bestD) { bestD = d; best = p; }
     }
-    if (best && bestD <= maxNm) return best.name;
+    if (best && bestD <= maxNm) return best;
     return null;
+  }
+
+  // 좌표에 가장 가까운 등록 지점 이름 찾기 (1NM 이내)
+  function nearestPointName(lat, lng, maxNm) {
+    var p = nearestPoint(lat, lng, maxNm);
+    return p ? p.name : null;
   }
 
   // base 배열 + 사용자 추가분에 수정/삭제 오버레이를 적용해 최종 배열을 만든다.
@@ -213,6 +225,10 @@
     return details;
   }
 
+  // depName/arrName 산출 시 "근처 등록지점"으로 간주할 반경 — 서로 다른 두 좌표가
+  // 우연히 같은 지점 이름으로 뭉뚱그려지지 않도록 스냅 반경(약 80m)만큼만 타이트하게 유지
+  var NAME_MATCH_RADIUS_NM = 80 / 1852;
+
   function buildIndices() {
     ALL_POINTS = [];
     DB.sk_landings.forEach(function (p) { ALL_POINTS.push({ name: p.name, lat: p.lat, lng: p.lng, kind: 'sk' }); });
@@ -221,8 +237,8 @@
 
     ROUTES = DB.routes.map(function (r) {
       var parsed = parseRouteName(r.name);
-      var depName = nearestPointName(r.dep.lat, r.dep.lng) || parsed.dep;
-      var arrName = nearestPointName(r.arr.lat, r.arr.lng) || parsed.arr;
+      var depName = nearestPointName(r.dep.lat, r.dep.lng, NAME_MATCH_RADIUS_NM) || parsed.dep || coordLabel(r.dep.lat, r.dep.lng);
+      var arrName = nearestPointName(r.arr.lat, r.arr.lng, NAME_MATCH_RADIUS_NM) || parsed.arr || coordLabel(r.arr.lat, r.arr.lng);
       var distNm = Calc.routeDistanceNM(r.coords && r.coords.length >= 2 ? r.coords : [r.dep, r.arr]);
       var t130 = Calc.timeMin(distNm, 130);
       var t140 = Calc.timeMin(distNm, 140);
@@ -301,6 +317,7 @@
     toggleFavorite: toggleFavorite,
     getLayerState: getLayerState,
     saveLayerState: saveLayerState,
+    nearestPoint: nearestPoint,
     nearestPointName: nearestPointName,
     get orphanedOverlay() { return orphanedOverlay; }
   };

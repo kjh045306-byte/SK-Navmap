@@ -24,6 +24,7 @@
   var lpPendingPoint = null; // 누르기유지 발동 직후 역할 선택 대기 중인 지점
   var lpDraftName = null; // 자동 생성된 임시경로 이름 (예: Route01)
   var lpOrder = []; // 추가된 순서('dep'|'via') — "마지막 점 취소" 버튼이 참조
+  var lpSnapCandidate = null; // { near, raw } — 근처지점 스냅 확인 대기 중일 때
 
   function $(sel) { return document.querySelector(sel); }
   function $id(id) { return document.getElementById(id); }
@@ -264,16 +265,64 @@
     $id('compose-stats').textContent = '거리 ' + dist.toFixed(1) + 'NM · ' + t130.toFixed(1) + '분';
   }
 
-  // 지도 누르기유지 발동 시 호출 — 역할 선택 바텀시트를 연다
+  // 근처 등록지점 자동 스냅 반경 (50~100m 중간값)
+  var SNAP_RADIUS_NM = 80 / 1852;
+
+  // 지도 누르기유지 발동 시 호출 — 반경 안에 등록지점이 있으면 스냅 확인 카드를,
+  // 없으면 바로 역할 선택 목록을 보여준다 (같은 바텀시트 안에서 전환)
   function onMapLongPress(latlng) {
-    lpPendingPoint = { name: coordPointName(latlng), lat: latlng.lat, lng: latlng.lng };
-    $id('lp-role-title').textContent = lpPendingPoint.name;
+    var rawPoint = { name: coordPointName(latlng), lat: latlng.lat, lng: latlng.lng };
+    var near = Data.nearestPoint(latlng.lat, latlng.lng, SNAP_RADIUS_NM);
+    if (near) {
+      lpSnapCandidate = { near: near, raw: rawPoint };
+      showLpRoleSheet(null);
+    } else {
+      lpPendingPoint = rawPoint;
+      showLpRoleSheet(rawPoint);
+    }
+  }
+
+  // point가 있으면 역할 선택 목록을, 없으면(=스냅 확인 대기) 스냅 카드를 보여준다
+  function showLpRoleSheet(point) {
+    if (point) {
+      $id('lp-snap-card').style.display = 'none';
+      $id('lp-role-list').style.display = 'flex';
+      $id('lp-role-title').textContent = point.name;
+    } else {
+      $id('lp-role-list').style.display = 'none';
+      $id('lp-snap-card').style.display = 'block';
+      $id('lp-snap-name').textContent = lpSnapCandidate.near.name;
+      $id('lp-role-title').textContent = '이 지점을 어떻게 사용할까요?';
+    }
     openSheet('lp-role-sheet');
+  }
+
+  // 스냅 확인 카드에서 "네, 이 지점 사용" — 등록된 지점의 정확한 이름/좌표를 그대로 사용
+  function lpSnapAccept() {
+    if (!lpSnapCandidate) return;
+    var near = lpSnapCandidate.near;
+    lpPendingPoint = { name: near.name, lat: near.lat, lng: near.lng };
+    lpSnapCandidate = null;
+    showLpRoleSheet(lpPendingPoint);
+  }
+
+  // 스냅 확인 카드에서 "아니오, 새 지점 사용" — 누른 좌표 그대로 사용
+  function lpSnapDecline() {
+    if (!lpSnapCandidate) return;
+    lpPendingPoint = lpSnapCandidate.raw;
+    lpSnapCandidate = null;
+    showLpRoleSheet(lpPendingPoint);
   }
 
   // 역할 선택 바텀시트에서 출발지/경유지/도착지 버튼 선택 시 호출
   function lpSelectRole(role) {
     if (!lpPendingPoint) return;
+    if (role === 'arr' && !selectedDepPoint) {
+      closeSheet('lp-role-sheet');
+      lpPendingPoint = null;
+      toast('먼저 출발지를 지정해주세요');
+      return;
+    }
     var point = lpPendingPoint;
     lpPendingPoint = null;
     closeSheet('lp-role-sheet');
@@ -335,15 +384,47 @@
     hideComposeBar();
   }
 
-  // 도착지 지정 → 임시경로 완성. 기존 "새 항법경로" 폼(및 저장 로직)을 그대로 재사용해 이름 확인 후 저장하게 한다
+  // 도착지 지정 → 임시경로 완성. 저장 확인 바텀시트를 연다 (이름은 탭하면 직접 입력 가능)
   function finalizeLpDraft() {
     lpFlowActive = false;
     hideComposeBar();
-    populatePointSelects();
-    setDepArrPoint('dep', selectedDepPoint);
-    setDepArrPoint('arr', selectedArrPoint);
-    $id('add-route-sheet').querySelector('.sheet-title').textContent = '새 항법경로';
-    openSheet('add-route-sheet');
+    $id('ar-name').value = lpDraftName;
+    openLpSaveSheet();
+  }
+
+  function openLpSaveSheet() {
+    $id('lp-save-name-label').textContent = lpDraftName;
+    $id('lp-save-name-label').style.display = '';
+    $id('lp-save-name-input').style.display = 'none';
+    $id('lp-save-route').textContent = selectedDepPoint.name + ' → ' + selectedArrPoint.name;
+    var pts = [{ lat: selectedDepPoint.lat, lng: selectedDepPoint.lng }]
+      .concat(viaPoints)
+      .concat([{ lat: selectedArrPoint.lat, lng: selectedArrPoint.lng }]);
+    var dist = Calc.routeDistanceNM(pts);
+    var t130 = Calc.timeMin(dist, 130);
+    $id('lp-save-stats').textContent = '거리 ' + dist.toFixed(1) + 'NM · ' + t130.toFixed(1) + '분 · 경유 ' + viaPoints.length + '개';
+    openSheet('lp-save-sheet');
+  }
+
+  // 이름 텍스트를 탭하면 바로 수정 가능한 입력창으로 전환
+  function lpSaveNameEdit() {
+    $id('lp-save-name-label').style.display = 'none';
+    var inp = $id('lp-save-name-input');
+    inp.value = $id('ar-name').value;
+    inp.style.display = 'block';
+    inp.focus();
+    inp.select();
+  }
+
+  // 입력값을 ar-name(저장 로직이 참조하는 필드)에 반영 — 비워두면 자동생성 이름을 그대로 사용
+  function lpSaveNameCommit() {
+    var inp = $id('lp-save-name-input');
+    if (inp.style.display === 'none') return;
+    var v = inp.value.trim();
+    $id('ar-name').value = v || lpDraftName;
+    $id('lp-save-name-label').textContent = $id('ar-name').value;
+    inp.style.display = 'none';
+    $id('lp-save-name-label').style.display = '';
   }
 
   /* ── 장소 검색 ── */
@@ -508,8 +589,8 @@
     $id('r-140').textContent = r.t140.toFixed(1);
     $id('r-fuel').textContent = Math.round(r.fuel);
     $id('result-bar').classList.add('show');
-    $id('route-display').textContent = r.depName + ' → ' + r.arrName;
-    $id('route-sub').textContent = r.distNm.toFixed(1) + 'NM · ' + r.t130.toFixed(1) + '분 · 연료 ' + Math.round(r.fuel) + 'LBS';
+    $id('route-display').textContent = r.name;
+    $id('route-sub').textContent = r.depName + ' → ' + r.arrName + ' · ' + r.distNm.toFixed(1) + 'NM · ' + r.t130.toFixed(1) + '분';
     $id('route-sub').style.display = '';
     $id('route-clear-btn').style.display = 'flex';
     closeSheet('route-sheet');
@@ -949,6 +1030,8 @@
     $id('ar-cancel-btn').addEventListener('click', function () { closeSheet('add-route-sheet'); resetRouteForm(); });
 
     // 지도 누르기유지(long-press) → 역할 선택 바텀시트
+    $id('lp-snap-yes').addEventListener('click', lpSnapAccept);
+    $id('lp-snap-no').addEventListener('click', lpSnapDecline);
     $id('lp-role-dep').addEventListener('click', function () { lpSelectRole('dep'); });
     $id('lp-role-via').addEventListener('click', function () { lpSelectRole('via'); });
     $id('lp-role-arr').addEventListener('click', function () { lpSelectRole('arr'); });
@@ -957,6 +1040,26 @@
       if (confirm('작성 중인 경로를 취소할까요?')) lpCancelDraft();
     });
     MapView.setLongPressHandler(onMapLongPress);
+
+    // 도착지 지정 완료 → 저장 확인 바텀시트 (이름 탭하면 입력창으로 전환)
+    $id('lp-save-name-label').addEventListener('click', lpSaveNameEdit);
+    $id('lp-save-name-input').addEventListener('blur', lpSaveNameCommit);
+    $id('lp-save-name-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') $id('lp-save-name-input').blur();
+    });
+    $id('lp-save-confirm-btn').addEventListener('click', function () {
+      lpSaveNameCommit();
+      if (selectedDepPoint.name === selectedArrPoint.name) {
+        toast('출발지와 도착지가 같습니다');
+        return;
+      }
+      closeSheet('lp-save-sheet');
+      saveNewRoute();
+    });
+    $id('lp-save-cancel-btn').addEventListener('click', function () {
+      closeSheet('lp-save-sheet');
+      lpCancelDraft();
+    });
     function pointFromSelect(sel) {
       var registered = Data.ALL_POINTS.find(function (p) { return p.name === sel.value; });
       if (registered) return registered;

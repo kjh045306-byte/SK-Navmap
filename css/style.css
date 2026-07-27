@@ -338,6 +338,29 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .lp-role-btn.arr:active{background:rgba(255,107,0,0.18);border-color:var(--sk-orange)}
 .lp-role-btn.via:active{background:rgba(255,215,0,0.18);border-color:var(--gold)}
 
+/* 근처 등록지점 자동 스냅 확인 카드 */
+.lp-snap-card{margin:0 18px 14px;background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.3);border-radius:14px;padding:12px 14px}
+.lp-snap-text{font-size:13px;color:#fff;margin-bottom:2px}
+.lp-snap-text b{color:var(--blue)}
+.lp-snap-sub{font-size:12px;color:var(--dim);margin-bottom:10px}
+.lp-snap-btns{display:flex;gap:8px}
+.lp-snap-btn{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-size:13px;font-weight:700;padding:10px 4px;cursor:pointer;text-align:center}
+.lp-snap-btn.yes{background:var(--blue);border-color:var(--blue);color:#04202b}
+
+/* 지도 누르기유지: 도착지 지정 완료 → 저장 확인 바텀시트 */
+.lp-save-body{padding:4px 18px 8px}
+.lp-save-name-wrap{margin-bottom:14px}
+.lp-save-name{font-size:19px;font-weight:800;color:#fff;padding:10px 12px;
+  border-radius:10px;border:1px dashed var(--border);cursor:pointer}
+.lp-save-name:active{border-color:var(--sk-orange)}
+.lp-save-name-input{
+  width:100%;background:var(--card);border:1px solid var(--blue);border-radius:10px;
+  color:var(--text);font-size:17px;font-weight:700;padding:10px 12px;outline:none;-webkit-appearance:none;
+}
+.lp-save-route{font-size:13px;color:var(--blue);margin-top:10px}
+.lp-save-stats{font-size:13px;font-weight:700;color:var(--sk-orange);margin-top:4px;margin-bottom:6px}
+
 /* ══════════════════════════ 토스트 ══════════════════════════ */
 .toast{
   position:fixed;left:50%;bottom:calc(var(--safe-bottom) + 90px);transform:translate(-50%,20px);
