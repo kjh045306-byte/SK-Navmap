@@ -98,6 +98,16 @@ button,input,select,textarea{font-family:inherit;color:inherit}
   font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;
 }
 .action-main-clear:active{background:rgba(255,85,85,0.15);border-color:rgba(255,85,85,0.4);color:#ff5555}
+/* 선택된 경로 Log 인쇄 — PC(641px 이상) 전용, 경로가 선택되어 있을 때만(.show) 노출 */
+.action-main-print{
+  display:none;flex-shrink:0;width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--dim);
+  font-size:13px;cursor:pointer;align-items:center;justify-content:center;
+}
+.action-main-print:hover{border-color:var(--sk-orange);color:var(--sk-orange)}
+@media (min-width:641px){
+  .action-main-print.show{display:flex}
+}
 
 .action-fab{
   width:52px;height:52px;border-radius:16px;border:none;

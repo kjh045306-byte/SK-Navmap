@@ -11,6 +11,7 @@
   var editingPoint = null; // { type, id } — 착륙장/WP 수정 중일 때
   var editingRouteId = null; // 항법경로 수정 중일 때 대상 id
   var selectedRouteId = null; // 현재 지도에 표시 중인(선택된) 저장 경로 id
+  var displayedRoute = null; // 위와 동일한 경로의 전체 객체 — "이 경로 Log 인쇄" 버튼이 참조
   // marker "kind"는 Data 타입 키(sk_landings/offsite_landings/hospital_landings/ultralight_landings/waypoints)와 그대로 동일하게 사용한다
   var LAYER_ORDER = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'cp', 'waypoints', 'ctrz', 'reportPoints', 'gwanjegwon', 'restricted'];
   var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings'];
@@ -583,6 +584,153 @@
     }
   }
 
+  /* ── 항법경로 Log 인쇄 (PC 전용, nav_log_2-1A_preview_v2.html 레이아웃 그대로) ── */
+  var CIRCLED_DIGITS = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+  var PRE_FLIGHT_FUEL_LBS = 150; // 이륙전 사용량 기본값 — 첫 행(출발)부터 누적연료에 반영
+
+  function circledNum(n) {
+    if (n >= 1 && n <= CIRCLED_DIGITS.length) return CIRCLED_DIGITS[n - 1];
+    return '(' + n + ')';
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  // 경로의 coords(=[dep, ...via, arr])를 구간별 로그 행으로 변환. via 지점 이름은
+  // 등록된 지점(스냅 반경 이내)이면 그 이름을, 아니면 좌표 표기를 사용한다
+  function buildLogRows(r) {
+    var coords = r.coords || [r.dep, r.arr];
+    var n = coords.length;
+    var cumDist = 0, cumTime = 0;
+    var rows = [];
+    for (var i = 0; i < n; i++) {
+      var c = coords[i];
+      var segDist = null, segTime = null;
+      if (i > 0) {
+        segDist = Calc.haversineNM(coords[i - 1].lat, coords[i - 1].lng, c.lat, c.lng);
+        segTime = Calc.timeMin(segDist, 130);
+        cumDist += segDist;
+        cumTime += segTime;
+      }
+      var name;
+      if (i === 0) name = r.depName;
+      else if (i === n - 1) name = r.arrName;
+      else name = Data.nearestPointName(c.lat, c.lng, SNAP_RADIUS_NM) || coordPointName(c);
+      var fms = Calc.toFMS(c.lat, c.lng);
+      rows.push({
+        isDep: i === 0,
+        isArr: i === n - 1,
+        no: i === 0 ? '출발' : (i === n - 1 ? '도착' : circledNum(i)),
+        name: name,
+        fmsText: fms.lat + ' ' + fms.lng,
+        seg: segDist,
+        segTime: segTime,
+        cumDist: cumDist,
+        cumTime: cumTime,
+        cumFuel: Math.round(PRE_FLIGHT_FUEL_LBS + Calc.fuelLbs(cumTime))
+      });
+    }
+    return rows;
+  }
+
+  // nav_log_2-1A_preview_v2.html의 CSS를 그대로 사용 (A5 최적화 + 표 페이지분할 방지 추가)
+  var NAV_LOG_STYLE =
+    '* { box-sizing: border-box; margin: 0; padding: 0; }' +
+    "body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background: #525659; padding: 24px; }" +
+    '.page { background: #fff; width: 148mm; min-height: 210mm; margin: 0 auto; padding: 10mm 8mm; color: #111; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }' +
+    '.summary-box { border: 1.5px solid #111; page-break-inside: avoid; }' +
+    '.summary-row1 { padding: 6px 10px; border-bottom: 1px solid #111; }' +
+    '.summary-label { font-size: 8px; color: #666; letter-spacing: 0.5px; }' +
+    '.summary-value { font-size: 14px; font-weight: 900; margin-top: 2px; line-height: 1.2; }' +
+    '.summary-arrow { color: #d4610a; margin: 0 8px; }' +
+    '.summary-row2 { display: flex; }' +
+    '.stat-cell { flex: 1; padding: 6px 6px; border-right: 1px solid #ddd; text-align: center; }' +
+    '.stat-cell:last-child { border-right: none; }' +
+    '.stat-label { font-size: 8px; color: #666; }' +
+    '.stat-value { font-size: 15px; font-weight: 900; margin-top: 2px; }' +
+    '.stat-value.blue { color: #1a5fa8; } .stat-value.green { color: #1a7a3c; } .stat-value.orange { color: #d4610a; }' +
+    '.stat-unit { font-size: 10px; font-weight: 700; }' +
+    '.log-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }' +
+    '.log-table th { background: #dceefc; color: #111; padding: 4px 3px; font-size: 10px; font-weight: 900; border: 1.5px solid #1a2634; text-align: center; }' +
+    '.log-table td { border: 1px solid #999; padding: 4px 3px; text-align: center; font-weight: 700; font-size: 12px; }' +
+    '.log-table td.wpt-name { text-align: left; padding-left: 8px; font-weight: 900; }' +
+    '.wpt-coord { font-size: 13px; font-weight: 700; color: #333; margin-top: 2px; }' +
+    '.log-table tr.dep-row td { background: #eaf7ee; } .log-table tr.arr-row td { background: #fdeaea; }' +
+    '.log-table tr:nth-child(even):not(.dep-row):not(.arr-row) td { background: #f7f9fb; }' +
+    '.no-cell { font-weight: 900; font-size: 11px; }' +
+    '.no-cell.dep { color: #1a7a3c; font-size: 10px; } .no-cell.arr { color: #b83232; font-size: 10px; }' +
+    '.log-table tr.total-row td { background: #dceefc; color: #111; font-weight: 900; font-size: 13px; border-color: #1a2634; }' +
+    '.log-table tr { page-break-inside: avoid; } .log-table thead { display: table-header-group; }' +
+    '.footer-note { margin-top: 8px; font-size: 8px; color: #111; page-break-inside: avoid; }' +
+    '.print-btn { position: fixed; top: 20px; right: 20px; background: #111; color: #fff; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }' +
+    '@media print { body { background: #fff; padding: 0; } .page { box-shadow: none; width: 100%; min-height: 0; } .print-btn { display: none; } @page { size: A5; margin: 8mm; } }';
+
+  function buildLogRowHtml(row) {
+    var trCls = row.isDep ? 'dep-row' : (row.isArr ? 'arr-row' : '');
+    var noCls = row.isDep ? 'no-cell dep' : (row.isArr ? 'no-cell arr' : 'no-cell');
+    return '<tr class="' + trCls + '">' +
+      '<td class="' + noCls + '">' + row.no + '</td>' +
+      '<td class="wpt-name">' + escapeHtml(row.name) + '<div class="wpt-coord">' + row.fmsText + '</div></td>' +
+      '<td>' + (row.seg == null ? '—' : row.seg.toFixed(1)) + '</td>' +
+      '<td>' + (row.segTime == null ? '—' : row.segTime.toFixed(1)) + '</td>' +
+      '<td>' + row.cumDist.toFixed(1) + '</td>' +
+      '<td>' + row.cumTime.toFixed(1) + '</td>' +
+      '<td>' + row.cumFuel + '</td>' +
+      '</tr>';
+  }
+
+  function buildNavLogHtml(r) {
+    var rows = buildLogRows(r);
+    var rowsHtml = rows.map(buildLogRowHtml).join('');
+    var totalFuel = rows[rows.length - 1].cumFuel;
+    var totalRow = '<tr class="total-row">' +
+      '<td colspan="2">TOTAL</td>' +
+      '<td>' + r.distNm.toFixed(1) + '</td>' +
+      '<td>' + r.t130.toFixed(1) + '</td>' +
+      '<td>—</td><td>—</td>' +
+      '<td>' + totalFuel + '</td>' +
+      '</tr>';
+    return '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">' +
+      '<title>항법경로 Log — ' + escapeHtml(r.name) + '</title>' +
+      '<style>' + NAV_LOG_STYLE + '</style></head><body>' +
+      '<button class="print-btn" onclick="window.print()">🖨️ 인쇄</button>' +
+      '<div class="page">' +
+      '<div class="summary-box">' +
+      '<div class="summary-row1">' +
+      '<div class="summary-label">ROUTE</div>' +
+      '<div class="summary-value">' + escapeHtml(r.depName) + ' <span class="summary-arrow">→</span> ' + escapeHtml(r.arrName) + '</div>' +
+      '<div style="margin-top:6px;font-size:13px;font-weight:700;color:#333">' + escapeHtml(r.name) + '</div>' +
+      '</div>' +
+      '<div class="summary-row2">' +
+      '<div class="stat-cell"><div class="stat-label">총거리</div><div class="stat-value blue">' + r.distNm.toFixed(1) + '<span class="stat-unit">NM</span></div></div>' +
+      '<div class="stat-cell"><div class="stat-label">130KTS 소요</div><div class="stat-value green">' + r.t130.toFixed(1) + '<span class="stat-unit">분</span></div></div>' +
+      '<div class="stat-cell"><div class="stat-label">총연료</div><div class="stat-value orange">' + totalFuel + '<span class="stat-unit">LBS</span></div></div>' +
+      '</div></div>' +
+      '<table class="log-table"><thead><tr>' +
+      '<th style="width:44px">No</th><th>지점명</th>' +
+      '<th style="width:56px">구간<br>(NM)</th><th style="width:56px">소요<br>(분)</th>' +
+      '<th style="width:56px">누적<br>거리</th><th style="width:56px">누적<br>시간</th><th style="width:62px">누적<br>연료</th>' +
+      '</tr></thead><tbody>' + rowsHtml + totalRow + '</tbody></table>' +
+      '<div class="footer-note">SK 항법지도 2.0 · ' + todayStr() + ' 출력 · 이륙전 사용량 ' + PRE_FLIGHT_FUEL_LBS + 'LBS 포함</div>' +
+      '</div></body></html>';
+  }
+
+  function openNavLogPrint(r) {
+    var win = window.open('', '_blank');
+    if (!win) { toast('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요'); return; }
+    win.document.open();
+    win.document.write(buildNavLogHtml(r));
+    win.document.close();
+  }
+
   /* ── 마커 클릭 → 정보 시트 ── */
   function onMarkerClick(point, kind) {
     var typeLabel = (Data.LAYER_STYLES[kind] && Data.LAYER_STYLES[kind].label) || kind;
@@ -674,6 +822,7 @@
   function selectRouteAndShow(r) {
     MapView.selectRoute(r);
     selectedRouteId = r.id;
+    displayedRoute = r;
     $id('r-dist').textContent = r.distNm.toFixed(1);
     $id('r-130').textContent = r.t130.toFixed(1);
     $id('r-140').textContent = r.t140.toFixed(1);
@@ -683,17 +832,20 @@
     $id('route-sub').textContent = r.depName + ' → ' + r.arrName + ' · ' + r.distNm.toFixed(1) + 'NM · ' + r.t130.toFixed(1) + '분';
     $id('route-sub').style.display = '';
     $id('route-clear-btn').style.display = 'flex';
+    $id('route-print-btn').classList.add('show');
     closeSheet('route-sheet');
   }
 
   function clearRouteSelection() {
     MapView.clearSelectedRoute();
     selectedRouteId = null;
+    displayedRoute = null;
     $id('result-bar').classList.remove('show');
     $id('route-display').textContent = '항법경로 선택';
     $id('route-sub').textContent = '';
     $id('route-sub').style.display = 'none';
     $id('route-clear-btn').style.display = 'none';
+    $id('route-print-btn').classList.remove('show');
   }
 
   /* ── 경로 검색 시트 (탭은 경로의 depGroup 필드로 필터링 — 레이어와 무관) ── */
@@ -791,6 +943,8 @@
     $id('ar-memo').value = r.memo || '';
     MapView.selectRoute(r);
     selectedRouteId = r.id;
+    displayedRoute = r;
+    $id('route-print-btn').classList.add('show');
     setDepArrPoint('dep', Data.ALL_POINTS.find(function (p) { return p.name === r.depName; }) || { name: r.depName, lat: r.dep.lat, lng: r.dep.lng });
     setDepArrPoint('arr', Data.ALL_POINTS.find(function (p) { return p.name === r.arrName; }) || { name: r.arrName, lat: r.arr.lat, lng: r.arr.lng });
     viaPoints = (r.coords || []).slice(1, -1).map(function (c) { return { lat: c.lat, lng: c.lng }; });
@@ -1036,6 +1190,10 @@
     $id('route-clear-btn').addEventListener('click', function (e) {
       e.stopPropagation();
       clearRouteSelection();
+    });
+    $id('route-print-btn').addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (displayedRoute) openNavLogPrint(displayedRoute);
     });
 
     // 공통: 오버레이 클릭/닫기버튼으로 시트 닫기
