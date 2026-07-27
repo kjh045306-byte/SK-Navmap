@@ -3,14 +3,11 @@
   'use strict';
 
   var map = null;
-  var markers = { sk: [], land: [], wp: [], cp: [], ctrz: [], airspace_notice: [], notam: [] };
-  var AIRSPACE_KINDS = ['cp', 'ctrz', 'airspace_notice', 'notam'];
-  var AIRSPACE_STYLE = {
-    cp: '#00c8ff',
-    ctrz: '#3366FF',
-    airspace_notice: '#00CC66',
-    notam: '#FF0000'
-  };
+  // 사용자가 추가/편집 가능한 "장소" 레이어 (marker-sheet 클릭 인터랙션 있음)
+  var POINT_LAYER_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'waypoints'];
+  // 참고용(읽기전용) geomType 기반 레이어 (Point/LineString/Polygon 혼재, 클릭 인터랙션 없음)
+  var REFERENCE_GEOM_TYPES = ['ctrz', 'gwanjegwon', 'restricted', 'reportPoints'];
+  var markers = { sk_landings: [], offsite_landings: [], hospital_landings: [], ultralight_landings: [], waypoints: [], cp: [], ctrz: [], gwanjegwon: [], restricted: [], reportPoints: [] };
   var allRouteLines = []; // 전체 경로(초록, 얇음) — 레이어 ON시만 지도에 부착
   var selectedPolyline = null; // 저장된 경로 선택 시(오렌지) — 레이어 설정과 무관하게 항상 표시
   var draftPolyline = null; // 작성 중인(미저장) 경로 미리보기(노랑) — 레이어 설정과 무관하게 항상 표시
@@ -194,53 +191,60 @@
     });
   }
 
-  function markerIconUrl(kind) {
-    if (kind === 'wp') {
-      var svgWp = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">' +
-        '<circle cx="8" cy="8" r="6" fill="#00c8ff" stroke="#ffffff" stroke-width="2"/></svg>';
-      return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgWp);
-    }
-    var color = kind === 'sk' ? '#E8001C' : '#00aa55';
+  // navmap_data.json의 layerStyles(shape/color)를 그대로 반영하는 범용 마커 아이콘 생성기
+  function circleIcon(color, size) {
+    size = size || 16;
+    var c = size / 2, r = c - 1.5;
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '">' +
+      '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="' + color + '" stroke="#ffffff" stroke-width="1.5"/></svg>';
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(size, size),
+      anchor: new google.maps.Point(c, c)
+    };
+  }
+
+  function squareHIcon(color) {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30">' +
       '<rect x="2" y="2" width="26" height="26" rx="6" fill="' + color + '" stroke="#ffffff" stroke-width="2.5"/>' +
       '<text x="15" y="21" font-size="15" font-weight="900" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif">H</text>' +
       '</svg>';
-    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(30, 30), anchor: new google.maps.Point(15, 15) };
   }
 
-  function iconFor(kind) {
-    if (kind === 'wp') {
-      return { url: markerIconUrl('wp'), scaledSize: new google.maps.Size(16, 16), anchor: new google.maps.Point(8, 8) };
-    }
-    return { url: markerIconUrl(kind), scaledSize: new google.maps.Size(30, 30), anchor: new google.maps.Point(15, 15) };
+  function crossIcon(color) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28">' +
+      '<path d="M11 3 H17 V11 H25 V17 H17 V25 H11 V17 H3 V11 H11 Z" fill="' + color + '" stroke="#333333" stroke-width="1.5" stroke-linejoin="round"/>' +
+      '</svg>';
+    return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(28, 28), anchor: new google.maps.Point(14, 14) };
   }
 
-  function airspaceIcon(kind) {
-    var color = AIRSPACE_STYLE[kind] || '#ffffff';
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">' +
-      '<circle cx="7" cy="7" r="5" fill="' + color + '" stroke="#ffffff" stroke-width="1.5"/></svg>';
-    return {
-      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-      scaledSize: new google.maps.Size(14, 14),
-      anchor: new google.maps.Point(7, 7)
-    };
+  // style: layerStyles[type] ({shape,color,label}) — shape에 따라 알맞은 아이콘을 만든다
+  function iconForStyle(style, size) {
+    var color = (style && style.color) || '#ffffff';
+    var shape = style && style.shape;
+    if (shape === 'circle') return circleIcon(color, size || 16);
+    if (shape === 'cross') return crossIcon(color);
+    return squareHIcon(color); // 'square-h' 기본값
   }
 
-  // geomType(Point/LineString/Polygon)에 따라 마커/폴리라인/폴리곤으로 렌더링 (공역 레이어 공용)
-  // 항목별 원본 color는 무시하고 카테고리 고정색(AIRSPACE_STYLE)을 적용
-  function renderGeomItems(items, kind, visible) {
-    var color = AIRSPACE_STYLE[kind] || '#ffffff';
+  // geomType(Point/LineString/Polygon 또는 없으면 Point로 간주)에 따라 마커/폴리라인/폴리곤으로 렌더링 (참고 레이어 공용)
+  // onPointClick이 주어지면(ReportPoint 등) Point 마커에 클릭 리스너를 붙인다 — 나머지 참고 레이어는 그대로 비인터랙티브
+  function renderGeomItems(items, color, visible, onPointClick) {
     return (items || []).map(function (item) {
-      if (item.geomType === 'Point') {
-        return new google.maps.Marker({
+      var gt = item.geomType || 'Point';
+      if (gt === 'Point') {
+        var mk = new google.maps.Marker({
           position: { lat: item.lat, lng: item.lng },
           map: visible ? map : null,
-          icon: airspaceIcon(kind),
+          icon: circleIcon(color, 12),
           title: item.name,
           zIndex: 2
         });
+        if (onPointClick) mk.addListener('click', function () { onPointClick(item); });
+        return mk;
       }
-      if (item.geomType === 'Polygon') {
+      if (gt === 'Polygon') {
         return new google.maps.Polygon({
           paths: item.coords,
           strokeColor: color, strokeWeight: 2, strokeOpacity: 0.9,
@@ -356,56 +360,54 @@
 
   function renderMarkers(onMarkerClick) {
     var layers = Data.getLayerState();
-    clearMarkerGroup('sk');
-    clearMarkerGroup('land');
-    clearMarkerGroup('wp');
+    var styles = Data.LAYER_STYLES || {};
 
-    Data.DB.sk_landings.forEach(function (p) {
-      var mk = new google.maps.Marker({
-        position: { lat: p.lat, lng: p.lng },
-        map: layers.sk ? map : null,
-        icon: iconFor('sk'),
-        title: p.name
+    // 사용자 추가/편집 가능한 "장소" 레이어 — 클릭 시 marker-sheet(또는 경로작성 중이면 routePointClickHandler)
+    POINT_LAYER_TYPES.forEach(function (type) {
+      clearMarkerGroup(type);
+      var icon = iconForStyle(styles[type], type === 'waypoints' ? 16 : 30);
+      Data.DB[type].forEach(function (p) {
+        var mk = new google.maps.Marker({
+          position: { lat: p.lat, lng: p.lng },
+          map: layers[type] ? map : null,
+          icon: icon,
+          title: p.name,
+          zIndex: type === 'waypoints' ? 1 : undefined
+        });
+        mk.set('pointId', p.id);
+        mk.addListener('click', function () {
+          if (routePointClickHandler) routePointClickHandler(p, type); else onMarkerClick(p, type);
+        });
+        markers[type].push(mk);
       });
-      mk.set('pointId', p.id);
-      mk.addListener('click', function () {
-        if (routePointClickHandler) routePointClickHandler(p, 'sk'); else onMarkerClick(p, 'sk');
-      });
-      markers.sk.push(mk);
     });
 
-    Data.DB.landings.forEach(function (p) {
+    // CP — WayPoint와 동일하게 클릭 시 정보시트 표시
+    clearMarkerGroup('cp');
+    var cpIcon = iconForStyle(styles.cp, 14);
+    markers.cp = Data.DB.cp.map(function (p) {
       var mk = new google.maps.Marker({
         position: { lat: p.lat, lng: p.lng },
-        map: layers.land ? map : null,
-        icon: iconFor('land'),
-        title: p.name
-      });
-      mk.set('pointId', p.id);
-      mk.addListener('click', function () {
-        if (routePointClickHandler) routePointClickHandler(p, 'land'); else onMarkerClick(p, 'land');
-      });
-      markers.land.push(mk);
-    });
-
-    Data.DB.waypoints.forEach(function (p) {
-      var mk = new google.maps.Marker({
-        position: { lat: p.lat, lng: p.lng },
-        map: layers.wp ? map : null,
-        icon: iconFor('wp'),
+        map: layers.cp ? map : null,
+        icon: cpIcon,
         title: p.name,
-        zIndex: 1
+        zIndex: 2
       });
-      mk.set('pointId', p.id);
       mk.addListener('click', function () {
-        if (routePointClickHandler) routePointClickHandler(p, 'wp'); else onMarkerClick(p, 'wp');
+        if (routePointClickHandler) routePointClickHandler(p, 'cp'); else onMarkerClick(p, 'cp');
       });
-      markers.wp.push(mk);
+      return mk;
     });
 
-    AIRSPACE_KINDS.forEach(function (kind) {
-      clearMarkerGroup(kind);
-      markers[kind] = renderGeomItems(Data.DB[kind], kind, layers[kind]);
+    // 참고용 geomType 기반 레이어 (CTRZ/관제권/금지·위험·제한공역/Report Point)
+    // Report Point만 CP/WayPoint와 동일하게 클릭 가능 (CTRZ/관제권/제한공역은 계속 비인터랙티브)
+    REFERENCE_GEOM_TYPES.forEach(function (type) {
+      clearMarkerGroup(type);
+      var color = (styles[type] && styles[type].color) || '#ffffff';
+      var onPointClick = type === 'reportPoints' ? function (item) {
+        if (routePointClickHandler) routePointClickHandler(item, type); else onMarkerClick(item, type);
+      } : null;
+      markers[type] = renderGeomItems(Data.DB[type], color, layers[type], onPointClick);
     });
 
     renderAllRouteLines(layers.routesAll);

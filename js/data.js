@@ -6,21 +6,40 @@
   var LS_USER = 'skn_user_data';
   var LS_FAVS = 'skn_favorites';
   var LS_LAYERS = 'skn_layers';
-  var TYPES = ['sk_landings', 'landings', 'waypoints', 'routes'];
+
+  // 사용자가 추가/수정/삭제할 수 있는 타입(오버레이 대상) — 착륙장 4종 + WayPoint + 경로
+  var TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'waypoints', 'routes'];
+  // 참고용(읽기전용) 레이어 — base 데이터 그대로 표시, 사용자 추가/수정 없음
+  var REFERENCE_TYPES = ['cp', 'ctrz', 'gwanjegwon', 'restricted', 'reportPoints'];
+  // 경로 작성 시 드롭다운 대상이 되는 "장소"(사용자 추가/편집 가능) 타입
+  var POINT_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'waypoints'];
+  // 이름 매칭/스냅(근처지점 자동 스냅, depName·arrName 산출)의 대상 — CP/ReportPoint도 마커클릭으로 경로에 쓰일 수 있으므로 포함
+  var NAME_MATCH_TYPES = POINT_TYPES.concat(['cp', 'reportPoints']);
 
   var EMPTY_USER = function () {
-    return { sk_landings: [], landings: [], waypoints: [], routes: [] };
+    var o = {};
+    TYPES.forEach(function (t) { o[t] = []; });
+    return o;
   };
-  var emptyEdits = function () { return { sk_landings: {}, landings: {}, waypoints: {}, routes: {} }; };
-  var emptyDeletes = function () { return { sk_landings: [], landings: [], waypoints: [], routes: [] }; };
-
-  var AIRSPACE_TYPES = ['cp', 'ctrz', 'airspace_notice', 'notam'];
+  var emptyEdits = function () {
+    var o = {};
+    TYPES.forEach(function (t) { o[t] = {}; });
+    return o;
+  };
+  var emptyDeletes = function () {
+    var o = {};
+    TYPES.forEach(function (t) { o[t] = []; });
+    return o;
+  };
 
   // 병합된 현재 데이터 (base + 사용자 추가/수정/삭제 오버레이 적용)
-  var DB = { sk_landings: [], landings: [], waypoints: [], routes: [], cp: [], ctrz: [], airspace_notice: [], notam: [] };
+  var DB = {};
+  TYPES.concat(REFERENCE_TYPES).forEach(function (t) { DB[t] = []; });
+  // navmap_data.json의 layerStyles(레이어별 라벨/색상/모양) — 레이어시트/마커 렌더링이 그대로 참조
+  var LAYER_STYLES = {};
   // 검색/표시용으로 가공된 경로 목록 (거리/시간/연료/dep·arr 이름 포함)
   var ROUTES = [];
-  // 모든 지점(마커 매칭용): {name,lat,lng,kind}
+  // 모든 "장소" 지점(마커 매칭용): {name,lat,lng,kind}
   var ALL_POINTS = [];
 
   function makeId() {
@@ -136,8 +155,12 @@
     return !!f[routeName];
   }
 
-  // 레이어 표시 상태
-  var DEFAULT_LAYERS = { sk: true, land: true, wp: false, routesAll: false, cp: false, ctrz: false, airspace_notice: false, notam: false };
+  // 레이어 표시 상태 (10개 레이어 + 전체 항법경로)
+  var DEFAULT_LAYERS = {
+    sk_landings: true, offsite_landings: true, hospital_landings: false, ultralight_landings: false,
+    cp: false, waypoints: false, ctrz: false, reportPoints: false, gwanjegwon: false, restricted: false,
+    routesAll: false
+  };
   function getLayerState() {
     try {
       var raw = localStorage.getItem(LS_LAYERS);
@@ -164,7 +187,7 @@
     return '좌표 ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
   }
 
-  // 좌표에 가장 가까운 등록 지점(SK착륙장/착륙장/WayPoint) 찾기 — { name, lat, lng, kind } 또는 없으면 null
+  // 좌표에 가장 가까운 등록 지점(SK착륙장/장외이착륙장/병원착륙장/초경량비행장/WayPoint) 찾기 — { name, lat, lng, kind } 또는 없으면 null
   function nearestPoint(lat, lng, maxNm) {
     maxNm = maxNm || 1.0;
     var best = null, bestD = Infinity;
@@ -212,7 +235,7 @@
     var details = [];
     TYPES.forEach(function (type) {
       var validIds = {};
-      base[type].forEach(function (item) { validIds[idOf(type, item)] = true; });
+      (base[type] || []).forEach(function (item) { validIds[idOf(type, item)] = true; });
       (user[type] || []).forEach(function (item) { if (item.id) validIds[item.id] = true; });
 
       Object.keys(edits[type]).forEach(function (id) {
@@ -231,9 +254,9 @@
 
   function buildIndices() {
     ALL_POINTS = [];
-    DB.sk_landings.forEach(function (p) { ALL_POINTS.push({ name: p.name, lat: p.lat, lng: p.lng, kind: 'sk' }); });
-    DB.landings.forEach(function (p) { ALL_POINTS.push({ name: p.name, lat: p.lat, lng: p.lng, kind: 'land' }); });
-    DB.waypoints.forEach(function (p) { ALL_POINTS.push({ name: p.name, lat: p.lat, lng: p.lng, kind: 'wp' }); });
+    NAME_MATCH_TYPES.forEach(function (type) {
+      DB[type].forEach(function (p) { ALL_POINTS.push({ name: p.name, lat: p.lat, lng: p.lng, kind: type }); });
+    });
 
     ROUTES = DB.routes.map(function (r) {
       var parsed = parseRouteName(r.name);
@@ -251,6 +274,7 @@
         arr: r.arr,
         depName: depName,
         arrName: arrName,
+        depGroup: r.depGroup || null,
         coords: r.coords,
         memo: r.memo || '',
         distNm: distNm,
@@ -265,12 +289,11 @@
   function mergeBase(base, user) {
     var edits = user.edits || emptyEdits();
     var deletes = user.deletes || emptyDeletes();
-    DB.sk_landings = applyOverlay('sk_landings', base.sk_landings, user.sk_landings, edits, deletes);
-    DB.landings = applyOverlay('landings', base.landings, user.landings, edits, deletes);
-    DB.waypoints = applyOverlay('waypoints', base.waypoints, user.waypoints, edits, deletes);
-    DB.routes = applyOverlay('routes', base.routes, user.routes, edits, deletes);
-    // 공역 참고 레이어(CP/CTRZ/공역사항/NOTAM) — 사용자 추가/수정 없이 base 데이터 그대로 표시
-    AIRSPACE_TYPES.forEach(function (type) { DB[type] = base[type] || []; });
+    TYPES.forEach(function (type) {
+      DB[type] = applyOverlay(type, base[type] || [], user[type], edits, deletes);
+    });
+    // 참고용(읽기전용) 레이어 — 사용자 추가/수정 없이 base 데이터 그대로 표시
+    REFERENCE_TYPES.forEach(function (type) { DB[type] = base[type] || []; });
   }
 
   var baseCache = null;
@@ -284,6 +307,7 @@
       })
       .then(function (base) {
         baseCache = base;
+        LAYER_STYLES = base.layerStyles || {};
         var user = getUserData();
         orphanedOverlay = findOrphanedOverlay(base, user);
         if (orphanedOverlay.length) {
@@ -306,6 +330,7 @@
     DB: DB,
     get ROUTES() { return ROUTES; },
     get ALL_POINTS() { return ALL_POINTS; },
+    get LAYER_STYLES() { return LAYER_STYLES; },
     loadDatabase: loadDatabase,
     refreshFromLocal: refreshFromLocal,
     addUserPoint: addUserPoint,

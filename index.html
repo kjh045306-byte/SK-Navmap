@@ -192,6 +192,7 @@
         <button class="fms-copy" id="dms-copy-btn">📋</button>
       </div>
     </div>
+    <div class="sr-actions" id="marker-route-actions"></div>
     <div class="related-title">관련 항법경로</div>
     <div class="related-scroll" id="related-routes"></div>
     <div class="sheet-bottom"></div>
@@ -241,38 +242,7 @@
     <div class="sheet-handle"></div>
     <div class="sheet-title">레이어 & 설정</div>
     <div class="layer-list">
-      <div class="layer-row">
-        <div class="layer-row-label"><span class="layer-dot sk"></span>SK착륙장</div>
-        <label class="switch"><input type="checkbox" id="layer-sk"><span class="switch-track"></span></label>
-      </div>
-      <div class="layer-row">
-        <div class="layer-row-label"><span class="layer-dot land"></span>착륙장</div>
-        <label class="switch"><input type="checkbox" id="layer-land"><span class="switch-track"></span></label>
-      </div>
-      <div class="layer-row">
-        <div class="layer-row-label"><span class="layer-dot wp"></span>WayPoint</div>
-        <label class="switch"><input type="checkbox" id="layer-wp"><span class="switch-track"></span></label>
-      </div>
-      <div class="layer-row">
-        <div class="layer-row-label"><span class="layer-dot routes"></span>전체 항법경로</div>
-        <label class="switch"><input type="checkbox" id="layer-routes"><span class="switch-track"></span></label>
-      </div>
-      <div class="layer-row">
-        <div class="layer-row-label"><span class="layer-dot cp"></span>CP (통제점)</div>
-        <label class="switch"><input type="checkbox" id="layer-cp"><span class="switch-track"></span></label>
-      </div>
-      <div class="layer-row">
-        <div class="layer-row-label"><span class="layer-dot ctrz"></span>CTRZ (관제권)</div>
-        <label class="switch"><input type="checkbox" id="layer-ctrz"><span class="switch-track"></span></label>
-      </div>
-      <div class="layer-row">
-        <div class="layer-row-label"><span class="layer-dot notice"></span>공역사항</div>
-        <label class="switch"><input type="checkbox" id="layer-airspace-notice"><span class="switch-track"></span></label>
-      </div>
-      <div class="layer-row">
-        <div class="layer-row-label"><span class="layer-dot notam"></span>NOTAM</div>
-        <label class="switch"><input type="checkbox" id="layer-notam"><span class="switch-track"></span></label>
-      </div>
+      <div id="layer-rows"></div>
       <div class="select-row">
         <div class="layer-row-label">지도 종류</div>
         <select class="form-select" id="maptype-select" style="width:auto">
@@ -299,10 +269,7 @@
       </div>
       <div class="form-group">
         <div class="form-label">종류</div>
-        <select class="form-select" id="al-kind">
-          <option value="landings">착륙장 (초록)</option>
-          <option value="sk_landings">SK착륙장 (빨강)</option>
-        </select>
+        <select class="form-select" id="al-kind"></select>
       </div>
       <div class="form-group">
         <div class="form-label">좌표</div>

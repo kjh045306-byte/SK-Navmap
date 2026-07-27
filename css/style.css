@@ -249,15 +249,8 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .layer-row{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;border-bottom:1px solid var(--border)}
 .layer-row:last-of-type{border-bottom:none}
 .layer-row-label{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
-.layer-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-.layer-dot.sk{background:var(--sk-red)}
-.layer-dot.land{background:#00aa55}
-.layer-dot.wp{background:var(--blue);border-radius:50%}
-.layer-dot.routes{background:var(--green)}
-.layer-dot.cp{background:#00c8ff;border-radius:50%}
-.layer-dot.ctrz{background:#3366FF;border-radius:50%}
-.layer-dot.notice{background:#00CC66;border-radius:50%}
-.layer-dot.notam{background:#FF0000;border-radius:50%}
+/* 레이어별 색상은 layerStyles(JSON)에서 읽어와 JS가 인라인 style로 지정한다 */
+.layer-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .switch{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0}
 .switch input{opacity:0;width:0;height:0}
 .switch-track{position:absolute;inset:0;background:var(--border);border-radius:24px;transition:0.2s;cursor:pointer}
