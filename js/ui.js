@@ -19,6 +19,12 @@
   var selectedArrPoint = null; // 현재 선택된 도착지 { name, lat, lng }
   var pendingRoutePoint = null; // 지도탭 직후 역할(출발/도착/경유) 선택 대기 중인 지점
 
+  // ── 지도 누르기유지(long-press)로 시작하는 임시경로 작성 ──
+  var lpFlowActive = false; // 누르기유지로 임시경로 작성이 진행 중인지
+  var lpPendingPoint = null; // 누르기유지 발동 직후 역할 선택 대기 중인 지점
+  var lpDraftName = null; // 자동 생성된 임시경로 이름 (예: Route01)
+  var lpOrder = []; // 추가된 순서('dep'|'via') — "마지막 점 취소" 버튼이 참조
+
   function $(sel) { return document.querySelector(sel); }
   function $id(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
@@ -178,6 +184,7 @@
     MapView.setViaPoints(viaPoints);
     renderViaList();
     updateDraftPreview();
+    updateComposeStats();
   }
 
   // 출발/도착/경유점이 모두 갖춰지면 노란색 미리보기 선을 그린다 (저장 전 임시 경로)
@@ -208,12 +215,135 @@
       sel.appendChild(opt);
     }
     sel.value = point.name;
-    if (role === 'dep') selectedDepPoint = point; else selectedArrPoint = point;
+    if (role === 'dep') {
+      selectedDepPoint = point;
+      MapView.setDepMarker(point);
+    } else {
+      selectedArrPoint = point;
+      MapView.setArrMarker(point);
+    }
     updateDraftPreview();
+    updateComposeStats();
   }
 
   function coordPointName(latlng) {
     return '좌표 ' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
+  }
+
+  /* ── 지도 누르기유지(long-press)로 시작하는 임시경로 작성 ── */
+
+  // 이미 쓰인 "RouteNN" 이름과 겹치지 않는 다음 순번 이름을 만든다
+  function nextDraftRouteName() {
+    var used = {};
+    Data.ROUTES.forEach(function (r) { used[r.name] = true; });
+    var n = 1;
+    while (used['Route' + String(n).padStart(2, '0')]) n++;
+    return 'Route' + String(n).padStart(2, '0');
+  }
+
+  function showComposeBar() {
+    $id('action-row-normal').style.display = 'none';
+    $id('compose-row').style.display = 'flex';
+    $id('compose-title').textContent = lpDraftName + ' 작성 중';
+  }
+
+  function hideComposeBar() {
+    $id('compose-row').style.display = 'none';
+    $id('action-row-normal').style.display = '';
+  }
+
+  // calc.js의 거리계산 함수를 그대로 재사용해 작성 중인 임시경로의 거리/시간을 하단 액션바에 표시
+  function updateComposeStats() {
+    if (!lpFlowActive) return;
+    var pts = [];
+    if (selectedDepPoint) pts.push({ lat: selectedDepPoint.lat, lng: selectedDepPoint.lng });
+    pts = pts.concat(viaPoints);
+    if (selectedArrPoint) pts.push({ lat: selectedArrPoint.lat, lng: selectedArrPoint.lng });
+    var dist = Calc.routeDistanceNM(pts);
+    var t130 = Calc.timeMin(dist, 130);
+    $id('compose-stats').textContent = '거리 ' + dist.toFixed(1) + 'NM · ' + t130.toFixed(1) + '분';
+  }
+
+  // 지도 누르기유지 발동 시 호출 — 역할 선택 바텀시트를 연다
+  function onMapLongPress(latlng) {
+    lpPendingPoint = { name: coordPointName(latlng), lat: latlng.lat, lng: latlng.lng };
+    $id('lp-role-title').textContent = lpPendingPoint.name;
+    openSheet('lp-role-sheet');
+  }
+
+  // 역할 선택 바텀시트에서 출발지/경유지/도착지 버튼 선택 시 호출
+  function lpSelectRole(role) {
+    if (!lpPendingPoint) return;
+    var point = lpPendingPoint;
+    lpPendingPoint = null;
+    closeSheet('lp-role-sheet');
+    if (!lpFlowActive) {
+      lpFlowActive = true;
+      lpDraftName = nextDraftRouteName();
+      $id('ar-name').value = lpDraftName;
+      routeComposeActive = true;
+      showComposeBar();
+    }
+    if (role === 'dep') {
+      if (lpOrder.indexOf('dep') === -1) lpOrder.push('dep');
+      setDepArrPoint('dep', point);
+      toast('출발지로 지정되었습니다');
+    } else if (role === 'arr') {
+      setDepArrPoint('arr', point);
+      finalizeLpDraft();
+      return;
+    } else {
+      lpOrder.push('via');
+      viaPoints.push({ lat: point.lat, lng: point.lng });
+      syncViaUI();
+      toast('경유지로 추가되었습니다 (' + viaPoints.length + '개)');
+    }
+  }
+
+  // 하단 액션바의 "↩️ 취소" — 방금 추가한 마지막 지점을 제거하고 거리를 재계산
+  function lpUndoLast() {
+    if (!lpOrder.length) return;
+    var last = lpOrder.pop();
+    if (last === 'via') {
+      viaPoints.pop();
+      syncViaUI();
+    } else if (last === 'dep') {
+      selectedDepPoint = null;
+      $id('ar-dep-select').value = '';
+      MapView.clearDepMarker();
+      updateDraftPreview();
+      updateComposeStats();
+    }
+    if (!selectedDepPoint && !viaPoints.length) lpCancelDraft();
+  }
+
+  // 작성 중인 임시경로 전체를 취소하고 초기 상태로 되돌린다
+  function lpCancelDraft() {
+    lpFlowActive = false;
+    lpOrder = [];
+    lpDraftName = null;
+    viaPoints = [];
+    selectedDepPoint = null;
+    selectedArrPoint = null;
+    routeComposeActive = false;
+    $id('ar-dep-select').value = '';
+    $id('ar-arr-select').value = '';
+    MapView.clearViaMarkers();
+    MapView.clearDraftRoute();
+    MapView.clearDepMarker();
+    MapView.clearArrMarker();
+    hideComposeBar();
+  }
+
+  // 도착지 지정 → 임시경로 완성. 기존 "새 항법경로" 폼(및 저장 로직)을 그대로 재사용해 이름 확인 후 저장하게 한다
+  function finalizeLpDraft() {
+    lpFlowActive = false;
+    hideComposeBar();
+    populatePointSelects();
+    setDepArrPoint('dep', selectedDepPoint);
+    setDepArrPoint('arr', selectedArrPoint);
+    $id('add-route-sheet').querySelector('.sheet-title').textContent = '새 항법경로';
+    openSheet('add-route-sheet');
   }
 
   /* ── 장소 검색 ── */
@@ -574,6 +704,12 @@
     selectedArrPoint = null;
     editingRouteId = null;
     routeComposeActive = false;
+    lpFlowActive = false;
+    lpOrder = [];
+    lpDraftName = null;
+    hideComposeBar();
+    MapView.clearDepMarker();
+    MapView.clearArrMarker();
     $id('add-route-sheet').querySelector('.sheet-title').textContent = '새 항법경로';
     syncViaUI();
   }
@@ -811,6 +947,16 @@
     });
     $id('ar-save-btn').addEventListener('click', saveNewRoute);
     $id('ar-cancel-btn').addEventListener('click', function () { closeSheet('add-route-sheet'); resetRouteForm(); });
+
+    // 지도 누르기유지(long-press) → 역할 선택 바텀시트
+    $id('lp-role-dep').addEventListener('click', function () { lpSelectRole('dep'); });
+    $id('lp-role-via').addEventListener('click', function () { lpSelectRole('via'); });
+    $id('lp-role-arr').addEventListener('click', function () { lpSelectRole('arr'); });
+    $id('compose-undo-btn').addEventListener('click', lpUndoLast);
+    $id('compose-cancel-btn').addEventListener('click', function () {
+      if (confirm('작성 중인 경로를 취소할까요?')) lpCancelDraft();
+    });
+    MapView.setLongPressHandler(onMapLongPress);
     function pointFromSelect(sel) {
       var registered = Data.ALL_POINTS.find(function (p) { return p.name === sel.value; });
       if (registered) return registered;

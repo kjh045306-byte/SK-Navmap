@@ -21,6 +21,112 @@
   var searchMarker = null; // 장소 검색 결과 임시 마커(보라)
   var routePointClickHandler = null; // 설정되어 있으면 sk/land/wp 마커 탭 시 정보시트 대신 이 콜백(point, kind)으로 전달
 
+  // ── 지도 누르기 유지(long-press) 감지 ──
+  // 지도 스크롤(팬) 제스처와 반드시 구분되어야 하므로, 누른 지점에서 화면 픽셀거리(LONG_PRESS_TOL_PX) 이상
+  // 움직이면 즉시 타이머를 취소한다. mapClickHandler(기존 지도탭 픽 모드)가 설정된 동안에는 발동하지 않는다.
+  var LONG_PRESS_MS = 600;
+  var LONG_PRESS_TOL_PX = 10;
+  var longPressHandler = null; // ui.js 콜백(latlng) — 발동 시 호출
+  var longPressState = null; // { startX, startY, latLng, timer }
+  var suppressNextClick = false; // 롱프레스 발동 직후 곧이어 오는 click 이벤트 1회 무시
+
+  function longPressPoint(domEvent) {
+    var t = domEvent.touches && domEvent.touches[0] ? domEvent.touches[0] : domEvent;
+    return { x: t.clientX, y: t.clientY };
+  }
+
+  function onLongPressMove(e) {
+    if (!longPressState) return;
+    var p = longPressPoint(e);
+    var d = Math.hypot(p.x - longPressState.startX, p.y - longPressState.startY);
+    if (d > LONG_PRESS_TOL_PX) cancelLongPress();
+  }
+
+  function cancelLongPress() {
+    if (!longPressState) return;
+    clearTimeout(longPressState.timer);
+    document.removeEventListener('mousemove', onLongPressMove);
+    document.removeEventListener('touchmove', onLongPressMove);
+    document.removeEventListener('mouseup', cancelLongPress);
+    document.removeEventListener('touchend', cancelLongPress);
+    document.removeEventListener('touchcancel', cancelLongPress);
+    longPressState = null;
+  }
+
+  function startLongPress(e) {
+    cancelLongPress();
+    if (!longPressHandler || mapClickHandler) return; // 기존 지도탭 픽 모드 중에는 발동하지 않음
+    if (!e.domEvent || !e.latLng) return;
+    var p = longPressPoint(e.domEvent);
+    var latLng = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+    longPressState = {
+      startX: p.x,
+      startY: p.y,
+      timer: setTimeout(function () {
+        longPressState = null;
+        document.removeEventListener('mousemove', onLongPressMove);
+        document.removeEventListener('touchmove', onLongPressMove);
+        document.removeEventListener('mouseup', cancelLongPress);
+        document.removeEventListener('touchend', cancelLongPress);
+        document.removeEventListener('touchcancel', cancelLongPress);
+        suppressNextClick = true;
+        longPressHandler(latLng);
+      }, LONG_PRESS_MS)
+    };
+    document.addEventListener('mousemove', onLongPressMove, { passive: true });
+    document.addEventListener('touchmove', onLongPressMove, { passive: true });
+    document.addEventListener('mouseup', cancelLongPress, { passive: true });
+    document.addEventListener('touchend', cancelLongPress, { passive: true });
+    document.addEventListener('touchcancel', cancelLongPress, { passive: true });
+  }
+
+  function setLongPressHandler(fn) { longPressHandler = fn; }
+
+  // ── 경로 작성 중 출발지/도착지 지점 마커 (경유지 노란색과 구분되는 전용 색) ──
+  // 이미 등록된 착륙장/WP 위에 지정된 경우에도 같은 좌표에 겹쳐 그려 "선택됨" 표시 역할을 한다
+  var depMarker = null;
+  var arrMarker = null;
+
+  function endpointIcon(role) {
+    var color = role === 'dep' ? '#00cc66' : '#E8001C';
+    var label = role === 'dep' ? 'S' : 'E';
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30">' +
+      '<circle cx="15" cy="15" r="13" fill="' + color + '" stroke="#ffffff" stroke-width="2.5"/>' +
+      '<text x="15" y="20" font-size="14" font-weight="900" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif">' + label + '</text>' +
+      '</svg>';
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(30, 30),
+      anchor: new google.maps.Point(15, 15)
+    };
+  }
+
+  function setDepMarker(point) {
+    clearDepMarker();
+    if (!point) return;
+    depMarker = new google.maps.Marker({
+      position: { lat: point.lat, lng: point.lng },
+      map: map,
+      icon: endpointIcon('dep'),
+      title: '출발지: ' + (point.name || ''),
+      zIndex: 22
+    });
+  }
+  function clearDepMarker() { if (depMarker) { depMarker.setMap(null); depMarker = null; } }
+
+  function setArrMarker(point) {
+    clearArrMarker();
+    if (!point) return;
+    arrMarker = new google.maps.Marker({
+      position: { lat: point.lat, lng: point.lng },
+      map: map,
+      icon: endpointIcon('arr'),
+      title: '도착지: ' + (point.name || ''),
+      zIndex: 22
+    });
+  }
+  function clearArrMarker() { if (arrMarker) { arrMarker.setMap(null); arrMarker = null; } }
+
   function loadGoogleMaps(apiKey) {
     return new Promise(function (resolve, reject) {
       if (global.google && global.google.maps) { resolve(); return; }
@@ -180,8 +286,11 @@
       styles: MAP_STYLES
     });
     map.addListener('click', function (e) {
+      if (suppressNextClick) { suppressNextClick = false; return; }
       if (mapClickHandler) mapClickHandler({ lat: e.latLng.lat(), lng: e.latLng.lng() });
     });
+    map.addListener('mousedown', startLongPress);
+    map.addListener('dragstart', cancelLongPress); // 팬(스크롤) 제스처가 인식되면 즉시 취소
 
     return map;
   }
@@ -388,6 +497,11 @@
     panToPoint: panToPoint,
     setMapClickHandler: setMapClickHandler,
     clearMapClickHandler: clearMapClickHandler,
+    setLongPressHandler: setLongPressHandler,
+    setDepMarker: setDepMarker,
+    clearDepMarker: clearDepMarker,
+    setArrMarker: setArrMarker,
+    clearArrMarker: clearArrMarker,
     setRoutePointClickHandler: setRoutePointClickHandler,
     clearRoutePointClickHandler: clearRoutePointClickHandler,
     setMarkerDraggable: setMarkerDraggable,

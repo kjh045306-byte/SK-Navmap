@@ -72,7 +72,7 @@
 
   <!-- 하단 액션바 -->
   <div class="bottom-bar">
-    <div class="action-row">
+    <div class="action-row" id="action-row-normal">
       <div class="action-main" id="route-select-btn">
         <div class="action-main-icon">🗂️</div>
         <div class="action-main-text">
@@ -84,6 +84,29 @@
       </div>
       <button class="action-fab fab-add" id="add-fab">＋</button>
     </div>
+    <div class="action-row compose-row" id="compose-row" style="display:none">
+      <div class="compose-main">
+        <div class="compose-main-title" id="compose-title">Route01 작성 중</div>
+        <div class="compose-main-sub" id="compose-stats">거리 0.0NM · 0.0분</div>
+      </div>
+      <button class="action-fab fab-undo" id="compose-undo-btn" title="마지막 지점 취소">↩️</button>
+      <button class="action-fab fab-cancel" id="compose-cancel-btn" title="작성 종료">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 지도 누르기유지: 역할 선택 바텀시트 ── -->
+<div class="sheet" id="lp-role-sheet">
+  <div class="sheet-overlay"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="lp-role-title">이 지점을 어떻게 사용할까요?</div>
+    <div class="lp-role-list">
+      <button class="lp-role-btn dep" id="lp-role-dep">🛫 출발지로 지정</button>
+      <button class="lp-role-btn via" id="lp-role-via">📍 경유지로 지정</button>
+      <button class="lp-role-btn arr" id="lp-role-arr">🛬 도착지로 지정</button>
+    </div>
+    <div class="sheet-bottom"></div>
   </div>
 </div>
 

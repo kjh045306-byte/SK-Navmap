@@ -108,6 +108,16 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .action-fab:active{transform:scale(0.92)}
 .fab-add{background:var(--sk-orange);color:#fff}
 
+/* 지도 누르기유지로 작성 중인 임시경로 — 하단 액션바 자리에 한 줄로 표시 */
+.compose-main{
+  flex:1;min-width:0;background:rgba(13,21,32,0.92);border:1px solid rgba(255,107,0,0.45);
+  border-radius:16px;padding:10px 14px;backdrop-filter:blur(12px);
+}
+.compose-main-title{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compose-main-sub{font-size:12px;font-weight:700;color:var(--sk-orange);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fab-undo{background:rgba(255,255,255,0.1);color:#fff;border:1px solid var(--border);font-size:18px}
+.fab-cancel{background:rgba(255,85,85,0.15);color:#ff5555;border:1px solid rgba(255,85,85,0.35);font-size:18px}
+
 /* ══════════════════════════ 바텀시트 공통 ══════════════════════════ */
 .sheet{position:fixed;inset:0;z-index:200;pointer-events:none}
 .sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 0.3s;pointer-events:none}
@@ -317,6 +327,16 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .rpc-btn.dep:active{background:var(--blue);border-color:var(--blue)}
 .rpc-btn.arr:active{background:var(--sk-orange);border-color:var(--sk-orange)}
 .rpc-btn.via:active{background:var(--gold);border-color:var(--gold);color:#3a2a00}
+
+/* 지도 누르기유지: 역할 선택 바텀시트 (화면폭 전체를 쓰는 큰 버튼) */
+.lp-role-list{padding:4px 18px 8px;display:flex;flex-direction:column;gap:10px}
+.lp-role-btn{
+  width:100%;background:var(--card);border:1px solid var(--border);border-radius:14px;
+  color:#fff;font-size:15px;font-weight:700;padding:16px;text-align:center;cursor:pointer;
+}
+.lp-role-btn.dep:active{background:rgba(0,200,255,0.18);border-color:var(--blue)}
+.lp-role-btn.arr:active{background:rgba(255,107,0,0.18);border-color:var(--sk-orange)}
+.lp-role-btn.via:active{background:rgba(255,215,0,0.18);border-color:var(--gold)}
 
 /* ══════════════════════════ 토스트 ══════════════════════════ */
 .toast{
