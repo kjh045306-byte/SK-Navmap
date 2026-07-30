@@ -275,13 +275,24 @@
 
   /* ── 지도 누르기유지(long-press)로 시작하는 임시경로 작성 ── */
 
-  // 이미 쓰인 "RouteNN" 이름과 겹치지 않는 다음 순번 이름을 만든다
+  // 이미 쓰인 "RouteNN" 이름과 겹치지 않는 다음 순번 이름을 만든다 (작성 중 임시 표시용)
   function nextDraftRouteName() {
     var used = {};
     Data.ROUTES.forEach(function (r) { used[r.name] = true; });
     var n = 1;
     while (used['Route' + String(n).padStart(2, '0')]) n++;
     return 'Route' + String(n).padStart(2, '0');
+  }
+
+  // 저장 시 기본 이름: "출발지명 - 도착지명". 이미 같은 이름의 경로가 있으면 " (2)", " (3)"... 을 붙인다
+  function nextRouteName(depName, arrName) {
+    var base = depName + ' - ' + arrName;
+    var used = {};
+    Data.ROUTES.forEach(function (r) { used[r.name] = true; });
+    if (!used[base]) return base;
+    var n = 2;
+    while (used[base + ' (' + n + ')']) n++;
+    return base + ' (' + n + ')';
   }
 
   function showComposeBar() {
@@ -440,6 +451,7 @@
   function finalizeLpDraft() {
     lpFlowActive = false;
     hideComposeBar();
+    lpDraftName = nextRouteName(selectedDepPoint.name, selectedArrPoint.name);
     $id('ar-name').value = lpDraftName;
     openLpSaveSheet();
   }
@@ -641,37 +653,37 @@
     return rows;
   }
 
-  // nav_log_2-1A_preview_v2.html의 CSS를 그대로 사용 (A5 최적화 + 표 페이지분할 방지 추가)
+  // nav_log_2-1A_preview_v2.html의 CSS 기반, A4 기준으로 폰트/여백/컬럼폭 재조정 (표 페이지분할 방지 포함)
   var NAV_LOG_STYLE =
     '* { box-sizing: border-box; margin: 0; padding: 0; }' +
     "body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background: #525659; padding: 24px; }" +
-    '.page { background: #fff; width: 148mm; min-height: 210mm; margin: 0 auto; padding: 10mm 8mm; color: #111; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }' +
-    '.summary-box { border: 1.5px solid #111; page-break-inside: avoid; }' +
-    '.summary-row1 { padding: 6px 10px; border-bottom: 1px solid #111; }' +
-    '.summary-label { font-size: 8px; color: #666; letter-spacing: 0.5px; }' +
-    '.summary-value { font-size: 14px; font-weight: 900; margin-top: 2px; line-height: 1.2; }' +
-    '.summary-arrow { color: #d4610a; margin: 0 8px; }' +
+    '.page { background: #fff; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 16mm 18mm; color: #111; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }' +
+    '.summary-box { border: 2px solid #111; page-break-inside: avoid; }' +
+    '.summary-row1 { padding: 10px 16px; border-bottom: 1px solid #111; }' +
+    '.summary-label { font-size: 10px; color: #666; letter-spacing: 0.5px; }' +
+    '.summary-value { font-size: 20px; font-weight: 900; margin-top: 3px; line-height: 1.2; }' +
+    '.summary-arrow { color: #d4610a; margin: 0 10px; }' +
     '.summary-row2 { display: flex; }' +
-    '.stat-cell { flex: 1; padding: 6px 6px; border-right: 1px solid #ddd; text-align: center; }' +
+    '.stat-cell { flex: 1; padding: 10px 8px; border-right: 1px solid #ddd; text-align: center; }' +
     '.stat-cell:last-child { border-right: none; }' +
-    '.stat-label { font-size: 8px; color: #666; }' +
-    '.stat-value { font-size: 15px; font-weight: 900; margin-top: 2px; }' +
+    '.stat-label { font-size: 10px; color: #666; }' +
+    '.stat-value { font-size: 20px; font-weight: 900; margin-top: 3px; }' +
     '.stat-value.blue { color: #1a5fa8; } .stat-value.green { color: #1a7a3c; } .stat-value.orange { color: #d4610a; }' +
-    '.stat-unit { font-size: 10px; font-weight: 700; }' +
-    '.log-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }' +
-    '.log-table th { background: #dceefc; color: #111; padding: 4px 3px; font-size: 10px; font-weight: 900; border: 1.5px solid #1a2634; text-align: center; }' +
-    '.log-table td { border: 1px solid #999; padding: 4px 3px; text-align: center; font-weight: 700; font-size: 12px; }' +
-    '.log-table td.wpt-name { text-align: left; padding-left: 8px; font-weight: 900; }' +
-    '.wpt-coord { font-size: 13px; font-weight: 700; color: #333; margin-top: 2px; }' +
+    '.stat-unit { font-size: 12px; font-weight: 700; }' +
+    '.log-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }' +
+    '.log-table th { background: #dceefc; color: #111; padding: 8px 5px; font-size: 12px; font-weight: 900; border: 1.5px solid #1a2634; text-align: center; }' +
+    '.log-table td { border: 1px solid #999; padding: 8px 5px; text-align: center; font-weight: 700; font-size: 14px; }' +
+    '.log-table td.wpt-name { text-align: left; padding-left: 12px; font-weight: 900; }' +
+    '.wpt-coord { font-size: 14px; font-weight: 700; color: #333; margin-top: 3px; }' +
     '.log-table tr.dep-row td { background: #eaf7ee; } .log-table tr.arr-row td { background: #fdeaea; }' +
     '.log-table tr:nth-child(even):not(.dep-row):not(.arr-row) td { background: #f7f9fb; }' +
-    '.no-cell { font-weight: 900; font-size: 11px; }' +
-    '.no-cell.dep { color: #1a7a3c; font-size: 10px; } .no-cell.arr { color: #b83232; font-size: 10px; }' +
-    '.log-table tr.total-row td { background: #dceefc; color: #111; font-weight: 900; font-size: 13px; border-color: #1a2634; }' +
+    '.no-cell { font-weight: 900; font-size: 13px; }' +
+    '.no-cell.dep { color: #1a7a3c; font-size: 12px; } .no-cell.arr { color: #b83232; font-size: 12px; }' +
+    '.log-table tr.total-row td { background: #dceefc; color: #111; font-weight: 900; font-size: 15px; border-color: #1a2634; }' +
     '.log-table tr { page-break-inside: avoid; } .log-table thead { display: table-header-group; }' +
-    '.footer-note { margin-top: 8px; font-size: 8px; color: #111; page-break-inside: avoid; }' +
+    '.footer-note { margin-top: 14px; font-size: 10px; color: #111; page-break-inside: avoid; }' +
     '.print-btn { position: fixed; top: 20px; right: 20px; background: #111; color: #fff; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }' +
-    '@media print { body { background: #fff; padding: 0; } .page { box-shadow: none; width: 100%; min-height: 0; } .print-btn { display: none; } @page { size: A5; margin: 8mm; } }';
+    '@media print { body { background: #fff; padding: 0; } .page { box-shadow: none; width: 100%; min-height: 0; } .print-btn { display: none; } @page { size: A4; margin: 15mm; } }';
 
   function buildLogRowHtml(row) {
     var trCls = row.isDep ? 'dep-row' : (row.isArr ? 'arr-row' : '');
@@ -715,9 +727,9 @@
       '<div class="stat-cell"><div class="stat-label">총연료</div><div class="stat-value orange">' + totalFuel + '<span class="stat-unit">LBS</span></div></div>' +
       '</div></div>' +
       '<table class="log-table"><thead><tr>' +
-      '<th style="width:44px">No</th><th>지점명</th>' +
-      '<th style="width:56px">구간<br>(NM)</th><th style="width:56px">소요<br>(분)</th>' +
-      '<th style="width:56px">누적<br>거리</th><th style="width:56px">누적<br>시간</th><th style="width:62px">누적<br>연료</th>' +
+      '<th style="width:60px">No</th><th>지점명</th>' +
+      '<th style="width:80px">구간<br>(NM)</th><th style="width:80px">소요<br>(분)</th>' +
+      '<th style="width:80px">누적<br>거리</th><th style="width:80px">누적<br>시간</th><th style="width:88px">누적<br>연료</th>' +
       '</tr></thead><tbody>' + rowsHtml + totalRow + '</tbody></table>' +
       '<div class="footer-note">SK 항법지도 2.0 · ' + todayStr() + ' 출력 · 이륙전 사용량 ' + PRE_FLIGHT_FUEL_LBS + 'LBS 포함</div>' +
       '</div></body></html>';
