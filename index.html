@@ -26,6 +26,20 @@
   </div>
 </div>
 
+<!-- 로그인 화면 -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">🚁 <span class="sk">SK</span> <span class="nav">항법지도</span></div>
+    <div class="login-sub">계정으로 로그인하세요</div>
+    <div class="login-form">
+      <input class="form-input" id="login-email" type="email" placeholder="이메일" autocomplete="username">
+      <input class="form-input" id="login-password" type="password" placeholder="비밀번호" autocomplete="current-password">
+      <div class="login-error" id="login-error" style="display:none"></div>
+      <button class="btn-primary" id="login-submit-btn">로그인</button>
+    </div>
+  </div>
+</div>
+
 <!-- 메인 지도 화면 -->
 <div id="screen-map">
   <div id="map" class="map-el"></div>
@@ -57,6 +71,10 @@
     <div class="top-inner">
       <div class="logo">🚁 <span class="sk">SK</span> <span class="nav">항법지도</span></div>
       <div class="top-spacer"></div>
+      <div class="top-user" id="top-user" style="display:none">
+        <span class="top-user-email" id="top-user-email">—</span>
+        <button class="top-btn" id="logout-btn">로그아웃</button>
+      </div>
       <button class="top-btn" id="search-btn">🔍 검색</button>
       <button class="top-btn" id="layer-btn">🗺️ 레이어</button>
     </div>
@@ -116,6 +134,23 @@
       <button class="lp-role-btn dep" id="lp-role-dep">🛫 출발지로 지정</button>
       <button class="lp-role-btn via" id="lp-role-via">📍 경유지로 지정</button>
       <button class="lp-role-btn arr" id="lp-role-arr">🛬 도착지로 지정</button>
+    </div>
+    <div class="sheet-bottom"></div>
+  </div>
+</div>
+
+<!-- ── 편집모드: 마커 드래그/경유점 삽입 시 근처지점 스냅 확인 (신규작성과 동일한 스냅 반경 재사용) ── -->
+<div class="sheet" id="drag-snap-sheet">
+  <div class="sheet-overlay"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="lp-snap-card" style="display:block">
+      <div class="lp-snap-text">근처 지점: <b id="drag-snap-name">—</b></div>
+      <div class="lp-snap-sub">이 지점을 사용하시겠어요?</div>
+      <div class="lp-snap-btns">
+        <button class="lp-snap-btn yes" id="drag-snap-yes">네, 이 지점 사용</button>
+        <button class="lp-snap-btn no" id="drag-snap-no">아니오, 이 위치 사용</button>
+      </div>
     </div>
     <div class="sheet-bottom"></div>
   </div>
@@ -436,10 +471,12 @@
   <button id="install-dismiss">✕</button>
 </div>
 
+<script type="module" src="./js/firebase-init.js"></script>
 <script src="./js/calc.js"></script>
 <script src="./js/data.js"></script>
 <script src="./js/map.js"></script>
 <script src="./js/ui.js"></script>
+<script src="./js/auth-ui.js"></script>
 <script src="./js/app.js"></script>
 </body>
 </html>

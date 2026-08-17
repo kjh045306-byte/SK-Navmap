@@ -60,6 +60,20 @@
     });
   }
 
+  // Firebase 로그인 상태에 따라 로그인폼 ↔ 지도화면 전환 (데이터 동기화는 다음 단계)
+  function setupAuthScreenSwitch() {
+    window.addEventListener('sk-auth-changed', function (e) {
+      var user = e.detail && e.detail.user;
+      var overlay = document.getElementById('login-overlay');
+      if (!overlay) return;
+      if (user) {
+        overlay.classList.remove('show');
+      } else {
+        overlay.classList.add('show');
+      }
+    });
+  }
+
   function boot() {
     Promise.all([
       MapView.loadGoogleMaps(GOOGLE_MAPS_API_KEY),
@@ -81,6 +95,8 @@
     registerServiceWorker();
     setupInstallPrompt();
   }
+
+  setupAuthScreenSwitch();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
