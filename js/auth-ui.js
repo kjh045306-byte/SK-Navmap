@@ -67,6 +67,9 @@
   });
 
   logoutBtn.addEventListener('click', function () {
+    var user = window.firebaseAuth && window.firebaseAuth.currentUser;
+    var email = (user && user.email) || '현재 계정';
+    if (!confirm(email + '님으로 로그인됨\n로그아웃 하시겠습니까?')) return;
     if (window.firebaseAuth && window.firebaseSignOut) {
       window.firebaseSignOut(window.firebaseAuth);
     }
