@@ -145,10 +145,12 @@
     $id('route-point-chooser').style.display = 'none';
   }
 
-  // 경유점 드래그 이동 → 좌표 갱신
+  // 경유점 드래그 이동 → 좌표 갱신 (근처 등록지점이 있으면 스냅 제안)
   function onViaDrag(index, latlng) {
-    viaPoints[index] = latlng;
-    syncViaUI();
+    resolveDragSnap(latlng, function (p) {
+      viaPoints[index] = { lat: p.lat, lng: p.lng };
+      syncViaUI();
+    });
   }
 
   // 경유점 마커 탭 → 삭제 확인
@@ -232,20 +234,64 @@
     refreshMidpointMarkers();
   }
 
-  // 출발/도착 마커 드래그 종료 → 좌표만 갱신 (이름은 저장 시 쓰이지 않으므로 그대로 둔다)
+  // 출발/도착 마커 드래그 종료 → 좌표 갱신 (근처 등록지점이 있으면 스냅 제안; 없으면 이름은 그대로 두고 좌표만 갱신)
   function onDepDrag(latlng) {
     if (!selectedDepPoint) return;
-    selectedDepPoint = { name: selectedDepPoint.name, lat: latlng.lat, lng: latlng.lng };
-    updateDraftPreview();
-    updateComposeStats();
-    refreshMidpointMarkers();
+    resolveDragSnap(latlng, function (p) {
+      if (p.snapped) {
+        setDepArrPoint('dep', { name: p.name, lat: p.lat, lng: p.lng });
+      } else {
+        selectedDepPoint = { name: selectedDepPoint.name, lat: p.lat, lng: p.lng };
+        updateDraftPreview();
+        updateComposeStats();
+        refreshMidpointMarkers();
+      }
+    });
   }
   function onArrDrag(latlng) {
     if (!selectedArrPoint) return;
-    selectedArrPoint = { name: selectedArrPoint.name, lat: latlng.lat, lng: latlng.lng };
-    updateDraftPreview();
-    updateComposeStats();
-    refreshMidpointMarkers();
+    resolveDragSnap(latlng, function (p) {
+      if (p.snapped) {
+        setDepArrPoint('arr', { name: p.name, lat: p.lat, lng: p.lng });
+      } else {
+        selectedArrPoint = { name: selectedArrPoint.name, lat: p.lat, lng: p.lng };
+        updateDraftPreview();
+        updateComposeStats();
+        refreshMidpointMarkers();
+      }
+    });
+  }
+
+  // 편집모드 드래그/경유점삽입 스냅은 신규작성 롱프레스 스냅과 동일한 SNAP_RADIUS_NM(아래 정의)을 재사용
+  var dragSnapPending = null; // { near, raw, apply } — 편집모드 드래그/경유점삽입 스냅 확인 대기 중일 때
+
+  // 편집모드 마커 드래그·경유점 삽입 공용: 근처에 등록지점이 있으면 스냅 확인 카드를 띄우고,
+  // 없으면 바로 apply(raw좌표)를 호출한다. apply는 { lat, lng, name, snapped } 형태의 결과를 받는다
+  function resolveDragSnap(latlng, apply) {
+    var near = Data.nearestPoint(latlng.lat, latlng.lng, SNAP_RADIUS_NM);
+    if (!near) {
+      apply({ lat: latlng.lat, lng: latlng.lng, name: null, snapped: false });
+      return;
+    }
+    dragSnapPending = { near: near, raw: { lat: latlng.lat, lng: latlng.lng }, apply: apply };
+    $id('drag-snap-name').textContent = near.name;
+    openSheet('drag-snap-sheet');
+  }
+
+  function dragSnapAccept() {
+    if (!dragSnapPending) return;
+    var near = dragSnapPending.near, apply = dragSnapPending.apply;
+    dragSnapPending = null;
+    closeSheet('drag-snap-sheet');
+    apply({ lat: near.lat, lng: near.lng, name: near.name, snapped: true });
+  }
+
+  function dragSnapDecline() {
+    if (!dragSnapPending) return;
+    var raw = dragSnapPending.raw, apply = dragSnapPending.apply;
+    dragSnapPending = null;
+    closeSheet('drag-snap-sheet');
+    apply({ lat: raw.lat, lng: raw.lng, name: null, snapped: false });
   }
 
   // 편집모드(출발+도착이 모두 있을 때)에서 구간별 "+" 삽입 아이콘 위치를 재계산한다
@@ -258,15 +304,18 @@
   }
 
   // 구간 중앙의 "+" 아이콘 탭 → 그 구간(segIndex번째)에 새 경유점을 두 지점의 중간 좌표로 삽입
+  // (중간 좌표 근처에 등록지점이 있으면 드래그와 동일하게 스냅 제안)
   function insertViaAtSegment(segIndex) {
     var seq = [selectedDepPoint].concat(viaPoints).concat([selectedArrPoint]);
     var a = seq[segIndex], b = seq[segIndex + 1];
     if (!a || !b) return;
     var mid = { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
-    viaPoints.splice(segIndex, 0, mid);
-    lpOrder.push('via');
-    syncViaUI();
-    toast('경유점이 추가되었습니다');
+    resolveDragSnap(mid, function (p) {
+      viaPoints.splice(segIndex, 0, { lat: p.lat, lng: p.lng });
+      lpOrder.push('via');
+      syncViaUI();
+      toast('경유점이 추가되었습니다');
+    });
   }
 
   function coordPointName(latlng) {
@@ -437,8 +486,11 @@
     selectedDepPoint = null;
     selectedArrPoint = null;
     routeComposeActive = false;
-    $id('ar-dep-select').value = '';
-    $id('ar-arr-select').value = '';
+    // 드래그/경유점삽입 스냅 확인이 열려 있는 채로 취소되면, 이후 그 시트에서 예/아니오를 눌렀을 때
+    // 이미 초기화된 상태를 참조하는 낡은 콜백(apply)이 실행되어 취소 후에도 마커가 되살아나는 등
+    // 편집 상태가 남아있는 것처럼 보일 수 있다 — 대기 중이던 스냅 확인을 함께 무효화한다
+    dragSnapPending = null;
+    closeSheet('drag-snap-sheet');
     MapView.clearViaMarkers();
     MapView.clearDraftRoute();
     MapView.clearDepMarker();
@@ -657,7 +709,7 @@
   var NAV_LOG_STYLE =
     '* { box-sizing: border-box; margin: 0; padding: 0; }' +
     "body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background: #525659; padding: 24px; }" +
-    '.page { background: #fff; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 16mm 18mm; color: #111; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }' +
+    '.page { background: #fff; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 15mm; color: #111; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }' +
     '.summary-box { border: 2px solid #111; page-break-inside: avoid; }' +
     '.summary-row1 { padding: 10px 16px; border-bottom: 1px solid #111; }' +
     '.summary-label { font-size: 10px; color: #666; letter-spacing: 0.5px; }' +
@@ -670,20 +722,20 @@
     '.stat-value { font-size: 20px; font-weight: 900; margin-top: 3px; }' +
     '.stat-value.blue { color: #1a5fa8; } .stat-value.green { color: #1a7a3c; } .stat-value.orange { color: #d4610a; }' +
     '.stat-unit { font-size: 12px; font-weight: 700; }' +
-    '.log-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }' +
-    '.log-table th { background: #dceefc; color: #111; padding: 8px 5px; font-size: 12px; font-weight: 900; border: 1.5px solid #1a2634; text-align: center; }' +
-    '.log-table td { border: 1px solid #999; padding: 8px 5px; text-align: center; font-weight: 700; font-size: 14px; }' +
-    '.log-table td.wpt-name { text-align: left; padding-left: 12px; font-weight: 900; }' +
-    '.wpt-coord { font-size: 14px; font-weight: 700; color: #333; margin-top: 3px; }' +
+    '.log-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 15px; }' +
+    '.log-table th { background: #dceefc; color: #111; padding: 10px 6px; font-size: 14px; font-weight: 900; border: 1.5px solid #1a2634; text-align: center; }' +
+    '.log-table td { border: 1px solid #999; padding: 10px 6px; text-align: center; font-weight: 700; font-size: 16px; }' +
+    '.log-table td.wpt-name { text-align: left; padding-left: 14px; font-weight: 900; }' +
+    '.wpt-coord { font-size: 16px; font-weight: 700; color: #333; margin-top: 3px; }' +
     '.log-table tr.dep-row td { background: #eaf7ee; } .log-table tr.arr-row td { background: #fdeaea; }' +
     '.log-table tr:nth-child(even):not(.dep-row):not(.arr-row) td { background: #f7f9fb; }' +
-    '.no-cell { font-weight: 900; font-size: 13px; }' +
-    '.no-cell.dep { color: #1a7a3c; font-size: 12px; } .no-cell.arr { color: #b83232; font-size: 12px; }' +
-    '.log-table tr.total-row td { background: #dceefc; color: #111; font-weight: 900; font-size: 15px; border-color: #1a2634; }' +
+    '.no-cell { font-weight: 900; font-size: 15px; }' +
+    '.no-cell.dep { color: #1a7a3c; font-size: 14px; } .no-cell.arr { color: #b83232; font-size: 14px; }' +
+    '.log-table tr.total-row td { background: #dceefc; color: #111; font-weight: 900; font-size: 17px; border-color: #1a2634; }' +
     '.log-table tr { page-break-inside: avoid; } .log-table thead { display: table-header-group; }' +
     '.footer-note { margin-top: 14px; font-size: 10px; color: #111; page-break-inside: avoid; }' +
     '.print-btn { position: fixed; top: 20px; right: 20px; background: #111; color: #fff; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }' +
-    '@media print { body { background: #fff; padding: 0; } .page { box-shadow: none; width: 100%; min-height: 0; } .print-btn { display: none; } @page { size: A4; margin: 15mm; } }';
+    '@media print { body { background: #fff; padding: 0; } .page { box-shadow: none; width: 100%; min-height: 0; } .print-btn { display: none; } @page { size: A4; margin: 0; } }';
 
   function buildLogRowHtml(row) {
     var trCls = row.isDep ? 'dep-row' : (row.isArr ? 'arr-row' : '');
@@ -1185,11 +1237,38 @@
     toast(wasEditing ? '항법경로가 수정되었습니다' : '항법경로가 추가되었습니다 (' + coords.length + '개 지점)');
   }
 
+  /* ── 클라우드 동기화 ── */
+  var syncInFlight = false;
+  function runCloudSync(silent) {
+    if (syncInFlight) return;
+    syncInFlight = true;
+    var btn = $id('sync-btn');
+    if (btn) btn.disabled = true;
+    Data.syncFromCloud().then(function (result) {
+      MapView.renderMarkers(onMarkerClick);
+      populatePointSelects();
+      renderRouteTabs();
+      renderRouteList();
+      if (result && result.uploaded) {
+        toast('동기화 완료 (신규 ' + result.uploaded + '건 업로드)');
+      } else if (!silent) {
+        toast('동기화 완료 (최신 상태)');
+      }
+    }).catch(function (err) {
+      console.warn('[Sync] 불러오기 실패', err);
+      toast('동기화 실패, 최신 데이터를 받아오지 못했습니다');
+    }).finally(function () {
+      syncInFlight = false;
+      if (btn) btn.disabled = false;
+    });
+  }
+
   /* ── 초기화: 이벤트 연결 ── */
   function init() {
     // 상단바 / 하단바
     $id('search-btn').addEventListener('click', openSearchSheet);
     $id('layer-btn').addEventListener('click', function () { syncLayerSheetUI(); openSheet('layer-sheet'); });
+    $id('sync-btn').addEventListener('click', function () { runCloudSync(false); });
     $id('route-select-btn').addEventListener('click', function () {
       renderRouteTabs();
       renderRouteList();
@@ -1342,6 +1421,8 @@
     // 지도 누르기유지(long-press) → 역할 선택 바텀시트
     $id('lp-snap-yes').addEventListener('click', lpSnapAccept);
     $id('lp-snap-no').addEventListener('click', lpSnapDecline);
+    $id('drag-snap-yes').addEventListener('click', dragSnapAccept);
+    $id('drag-snap-no').addEventListener('click', dragSnapDecline);
     $id('lp-role-dep').addEventListener('click', function () { lpSelectRole('dep'); });
     $id('lp-role-via').addEventListener('click', function () { lpSelectRole('via'); });
     $id('lp-role-arr').addEventListener('click', function () { lpSelectRole('arr'); });
@@ -1411,6 +1492,7 @@
     onMarkerClick: onMarkerClick,
     toast: toast,
     openSheet: openSheet,
-    closeSheet: closeSheet
+    closeSheet: closeSheet,
+    runCloudSync: runCloudSync
   };
 })(window);

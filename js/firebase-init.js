@@ -3,7 +3,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { getDatabase } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDR-nw2KWMbvecnGm8b8tWKGgNbTFGFWVY",
@@ -23,6 +23,10 @@ window.firebaseAuth = auth;
 window.firebaseDb = db;
 window.firebaseSignIn = signInWithEmailAndPassword;
 window.firebaseSignOut = signOut;
+// Realtime Database — data.js(일반 스크립트)에서 사용자 추가 데이터 동기화(write-through/불러오기)에 사용
+window.firebaseDbRef = ref;
+window.firebaseDbGet = get;
+window.firebaseDbUpdate = update;
 
 onAuthStateChanged(auth, function (user) {
   window.dispatchEvent(new CustomEvent('sk-auth-changed', { detail: { user: user } }));

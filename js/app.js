@@ -60,7 +60,7 @@
     });
   }
 
-  // Firebase 로그인 상태에 따라 로그인폼 ↔ 지도화면 전환 (데이터 동기화는 다음 단계)
+  // Firebase 로그인 상태에 따라 로그인폼 ↔ 지도화면 전환
   function setupAuthScreenSwitch() {
     window.addEventListener('sk-auth-changed', function (e) {
       var user = e.detail && e.detail.user;
@@ -74,7 +74,34 @@
     });
   }
 
+  // 로그인 성공 시(세션 복원 포함) 클라우드에서 사용자 추가 데이터를 한 번 받아온다.
+  // Data.loadDatabase()가 아직 끝나지 않았으면(=baseCache 준비 전) boot() 완료 이후로 미룬다.
+  function setupCloudSyncOnLogin() {
+    var appReady = false;
+    var pendingUser = null;
+
+    function trigger(user) {
+      if (!user) return;
+      if (!appReady) { pendingUser = user; return; }
+      UI.runCloudSync(true);
+    }
+
+    window.addEventListener('sk-auth-changed', function (e) {
+      trigger(e.detail && e.detail.user);
+    });
+
+    return function onAppReady() {
+      appReady = true;
+      if (pendingUser) { trigger(pendingUser); pendingUser = null; }
+      else if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+        trigger(window.firebaseAuth.currentUser);
+      }
+    };
+  }
+
   function boot() {
+    var onAppReady = setupCloudSyncOnLogin();
+
     Promise.all([
       MapView.loadGoogleMaps(GOOGLE_MAPS_API_KEY),
       Data.loadDatabase()
@@ -87,6 +114,7 @@
         if (Data.orphanedOverlay.length) {
           UI.toast('적용 안 된 로컬 수정사항 ' + Data.orphanedOverlay.length + '건 (자세한 내용은 콘솔 참고)');
         }
+        onAppReady();
       })
       .catch(function (err) {
         showFatalError(err);

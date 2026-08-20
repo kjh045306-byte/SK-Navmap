@@ -6,6 +6,8 @@
   var LS_USER = 'skn_user_data';
   var LS_FAVS = 'skn_favorites';
   var LS_LAYERS = 'skn_layers';
+  var LS_CLOUD_SEEN = 'skn_cloud_seen'; // 직전 동기화 시점에 클라우드에 존재했던 사용자추가 항목 id 목록(타입별) — 다른 기기의 삭제를 구분하기 위한 용도
+  var CLOUD_ROOT = 'userData'; // Firebase Realtime Database 경로 루트
 
   // 사용자가 추가/수정/삭제할 수 있는 타입(오버레이 대상) — 착륙장 4종 + WayPoint + 경로
   var TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'waypoints', 'routes'];
@@ -43,7 +45,8 @@
   var ALL_POINTS = [];
 
   function makeId() {
-    return 'u_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    // 랜덤 부분을 8자리로 확보(36^8 ≈ 2.8조 조합)해 여러 기기에서 동시에 추가해도 충돌 가능성을 사실상 없앤다
+    return 'u_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   }
 
   // navmap_data.json에 미리 심어둔 영구 id가 없는(마이그레이션 전) base 항목을 위한 대비책.
@@ -97,48 +100,97 @@
     localStorage.setItem(LS_USER, JSON.stringify(d));
   }
 
+  // ── Firebase Realtime Database 동기화 (write-through) ──
+  function currentUserEmail() {
+    return (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuth.currentUser.email) || null;
+  }
+  function cloudReady() {
+    return !!(window.firebaseDb && window.firebaseDbRef && window.firebaseDbUpdate && currentUserEmail());
+  }
+  function notifySyncFailure() {
+    console.warn('[Sync] 클라우드 반영 실패, 로컬에만 저장됨');
+    if (global.UI && global.UI.toast) global.UI.toast('동기화 실패, 로컬에만 저장됨');
+  }
+  // pathValues: { "userData/타입/id": 값(null이면 해당 경로 삭제), ... } — 여러 경로를 한 번에 원자적으로 반영
+  function cloudWrite(pathValues) {
+    if (!cloudReady()) { notifySyncFailure(); return; }
+    window.firebaseDbUpdate(window.firebaseDbRef(window.firebaseDb), pathValues).catch(function (err) {
+      console.warn('[Sync] 클라우드 쓰기 실패', err);
+      notifySyncFailure();
+    });
+  }
+  function getCloudSeen() {
+    try { return JSON.parse(localStorage.getItem(LS_CLOUD_SEEN) || '{}'); } catch (e) { return {}; }
+  }
+  function saveCloudSeen(seen) {
+    localStorage.setItem(LS_CLOUD_SEEN, JSON.stringify(seen));
+  }
+
   function addUserPoint(type, item) {
     var d = getUserData();
-    item = Object.assign({ id: makeId() }, item);
+    item = Object.assign({ id: makeId() }, item, { addedBy: currentUserEmail(), updatedAt: Date.now() });
     d[type].push(item);
     saveUserData(d);
+    var pv = {};
+    pv[CLOUD_ROOT + '/' + type + '/' + item.id] = item;
+    cloudWrite(pv);
     return item;
   }
 
   function addUserRoute(route) {
     var d = getUserData();
-    route = Object.assign({ id: makeId() }, route);
+    route = Object.assign({ id: makeId() }, route, { addedBy: currentUserEmail(), updatedAt: Date.now() });
     d.routes.push(route);
     saveUserData(d);
+    var pv = {};
+    pv[CLOUD_ROOT + '/routes/' + route.id] = route;
+    cloudWrite(pv);
     return route;
   }
 
   // 기존 항목(원본 base 데이터 포함) 수정: id 기준으로 오버레이 적용
   function updateItem(type, id, fields) {
     var d = getUserData();
+    var meta = { addedBy: currentUserEmail(), updatedAt: Date.now() };
     if (String(id).indexOf('u_') === 0) {
       var idx = d[type].findIndex(function (x) { return x.id === id; });
       if (idx >= 0) {
-        d[type][idx] = Object.assign({}, d[type][idx], fields);
+        d[type][idx] = Object.assign({}, d[type][idx], fields, meta);
         saveUserData(d);
+        var pv = {};
+        pv[CLOUD_ROOT + '/' + type + '/' + id] = d[type][idx];
+        cloudWrite(pv);
         return;
       }
     }
-    d.edits[type][id] = Object.assign({}, d.edits[type][id], fields);
+    d.edits[type][id] = Object.assign({}, d.edits[type][id], fields, meta);
     saveUserData(d);
+    var pv2 = {};
+    pv2[CLOUD_ROOT + '/edits/' + type + '/' + id] = d.edits[type][id];
+    cloudWrite(pv2);
   }
 
   // 기존 항목(원본 base 데이터 포함) 삭제: id 기준
   function deleteItemById(type, id) {
     var d = getUserData();
+    var meta = { addedBy: currentUserEmail(), updatedAt: Date.now() };
     if (String(id).indexOf('u_') === 0) {
       d[type] = d[type].filter(function (x) { return x.id !== id; });
       delete d.edits[type][id];
+      saveUserData(d);
+      var pv = {};
+      pv[CLOUD_ROOT + '/' + type + '/' + id] = null;
+      pv[CLOUD_ROOT + '/edits/' + type + '/' + id] = null;
+      cloudWrite(pv);
     } else {
       if (d.deletes[type].indexOf(id) === -1) d.deletes[type].push(id);
       delete d.edits[type][id];
+      saveUserData(d);
+      var pv2 = {};
+      pv2[CLOUD_ROOT + '/deletes/' + type + '/' + id] = meta;
+      pv2[CLOUD_ROOT + '/edits/' + type + '/' + id] = null;
+      cloudWrite(pv2);
     }
-    saveUserData(d);
   }
 
   // 즐겨찾기
@@ -326,6 +378,107 @@
     buildIndices();
   }
 
+  // 클라우드(userData) 전체를 읽어와 로컬(skn_user_data)에 병합하고, 로컬에만 있던(아직
+  // 클라우드에 올라간 적 없는) 항목은 업로드한다. 앱 로드(로그인 직후) 및 "🔄 동기화" 버튼에서 호출.
+  //
+  // edits/deletes 우선순위는 별도 규칙을 두지 않고, 병합 결과를 d.edits/d.deletes에 그대로
+  // 채운 뒤 기존 mergeBase()→applyOverlay()가 원래 하던 대로(삭제가 수정보다 우선) 처리하게 한다.
+  function syncFromCloud() {
+    if (!window.firebaseDb || !window.firebaseDbRef || !window.firebaseDbGet || !window.firebaseDbUpdate) {
+      return Promise.reject(new Error('클라우드 연결이 준비되지 않았습니다'));
+    }
+    return window.firebaseDbGet(window.firebaseDbRef(window.firebaseDb, CLOUD_ROOT)).then(function (snap) {
+      var cloud = snap.exists() ? snap.val() : {};
+      var d = getUserData();
+      var seen = getCloudSeen();
+      var newSeen = {};
+      var uploads = {};
+      var uploadedCount = 0;
+      var email = currentUserEmail();
+
+      // 1) 항목 배열(착륙장 4종/waypoints/routes): 클라우드 병합 + 다른 기기의 삭제 반영 + 로컬 전용 항목 업로드
+      TYPES.forEach(function (type) {
+        var cloudItems = cloud[type] || {};
+        var cloudIds = Object.keys(cloudItems);
+        var seenIds = seen[type] || [];
+
+        // 직전 동기화 때는 클라우드에 있었는데(=이 기기가 이미 받아봤는데) 지금은 없다 → 다른 기기에서 삭제된 것 → 로컬에서도 제거
+        var kept = d[type].filter(function (item) {
+          return !(seenIds.indexOf(item.id) !== -1 && cloudIds.indexOf(item.id) === -1);
+        });
+
+        var byId = {};
+        kept.forEach(function (item) { byId[item.id] = item; });
+        // 클라우드 항목 반영: 로컬에 없거나, 클라우드 쪽이 더 최신이면 덮어씀
+        cloudIds.forEach(function (id) {
+          var cItem = cloudItems[id];
+          var lItem = byId[id];
+          if (!lItem || (cItem.updatedAt || 0) >= (lItem.updatedAt || 0)) byId[id] = cItem;
+        });
+        d[type] = Object.keys(byId).map(function (id) { return byId[id]; });
+
+        // 이 기기에만 있고(=아직 한 번도 클라우드에서 본 적 없는) 클라우드엔 없는 항목 → 최초 업로드 대상
+        d[type].forEach(function (item) {
+          if (!cloudItems[item.id] && seenIds.indexOf(item.id) === -1) {
+            uploads[CLOUD_ROOT + '/' + type + '/' + item.id] = item;
+            uploadedCount++;
+          }
+        });
+        newSeen[type] = cloudIds.slice();
+        Object.keys(uploads).forEach(function (path) {
+          if (path.indexOf(CLOUD_ROOT + '/' + type + '/') === 0) {
+            var id = path.slice((CLOUD_ROOT + '/' + type + '/').length);
+            if (newSeen[type].indexOf(id) === -1) newSeen[type].push(id);
+          }
+        });
+      });
+
+      // 2) edits(수정 오버레이) 병합: 더 최신 updatedAt 쪽 채택, 로컬 전용 edit은 업로드
+      var cloudEdits = cloud.edits || {};
+      TYPES.forEach(function (type) {
+        var cTypeEdits = cloudEdits[type] || {};
+        Object.keys(cTypeEdits).forEach(function (id) {
+          var cE = cTypeEdits[id];
+          var lE = d.edits[type][id];
+          if (!lE || (cE.updatedAt || 0) >= (lE.updatedAt || 0)) d.edits[type][id] = cE;
+        });
+        Object.keys(d.edits[type]).forEach(function (id) {
+          if (!cTypeEdits[id]) {
+            uploads[CLOUD_ROOT + '/edits/' + type + '/' + id] = d.edits[type][id];
+            uploadedCount++;
+          }
+        });
+      });
+
+      // 3) deletes(삭제 오버레이) 병합: 합집합(삭제는 항상 우선 — mergeBase가 그대로 적용)
+      var cloudDeletes = cloud.deletes || {};
+      TYPES.forEach(function (type) {
+        var cTypeDeletes = cloudDeletes[type] || {};
+        Object.keys(cTypeDeletes).forEach(function (id) {
+          if (d.deletes[type].indexOf(id) === -1) d.deletes[type].push(id);
+        });
+        d.deletes[type].forEach(function (id) {
+          if (!cTypeDeletes[id]) {
+            uploads[CLOUD_ROOT + '/deletes/' + type + '/' + id] = { addedBy: email, updatedAt: Date.now() };
+            uploadedCount++;
+          }
+        });
+      });
+
+      saveUserData(d);
+      saveCloudSeen(newSeen);
+      mergeBase(baseCache, d);
+      buildIndices();
+
+      if (Object.keys(uploads).length) {
+        return window.firebaseDbUpdate(window.firebaseDbRef(window.firebaseDb), uploads).then(function () {
+          return { uploaded: uploadedCount };
+        });
+      }
+      return { uploaded: 0 };
+    });
+  }
+
   global.Data = {
     DB: DB,
     get ROUTES() { return ROUTES; },
@@ -333,6 +486,7 @@
     get LAYER_STYLES() { return LAYER_STYLES; },
     loadDatabase: loadDatabase,
     refreshFromLocal: refreshFromLocal,
+    syncFromCloud: syncFromCloud,
     addUserPoint: addUserPoint,
     addUserRoute: addUserRoute,
     updateItem: updateItem,
