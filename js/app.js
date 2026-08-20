@@ -3,7 +3,7 @@
   'use strict';
 
   // Google Cloud Console에서 HTTP 리퍼러를 GitHub Pages 도메인으로 제한하세요.
-  var GOOGLE_MAPS_API_KEY = 'AIzaSyAi9KTkybz2bDXoZbbHWHzMpzylOL6N_dg';
+  var GOOGLE_MAPS_API_KEY = 'AIzaSyDUZbBFwxDGhv0eJG0r2rnweKhfX_xerPk';
 
   function hideLoading() {
     var el = document.getElementById('loading-screen');
