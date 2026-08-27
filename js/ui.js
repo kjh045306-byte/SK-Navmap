@@ -16,7 +16,6 @@
   var LAYER_ORDER = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'cp', 'waypoints', 'ctrz', 'reportPoints', 'gwanjegwon', 'restricted'];
   var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports'];
   var landingPicker = null; // 착륙장 추가/수정 폼의 아이콘/색상 선택 컴포넌트 (init에서 mountPicker로 생성)
-  var waypointPicker = null; // WayPoint/Report Point 추가 폼의 아이콘/색상 선택 컴포넌트
   var awKind = 'waypoints'; // add-waypoint-sheet에서 현재 선택된 종류('waypoints'|'reportPoints')
   var currentSearchResult = null; // 장소 검색 결과 중 선택된 항목 { name, address, lat, lng }
   var routeComposeActive = false; // 항법경로 작성 폼이 열려 있는 동안(경유점 탭 선택 중 포함) true
@@ -870,7 +869,6 @@
       $id('aw-lng').value = point.lng;
       $id('aw-memo').value = point.memo || '';
       if (kind === 'reportPoints') $id('aw-group').value = point.group || '';
-      waypointPicker.setValue(Icons.iconOf(kind, point), Icons.colorOf(kind, point));
       $id('add-waypoint-title').textContent = (kind === 'reportPoints' ? '공항 Report Point' : 'WayPoint') + ' 수정';
       openSheet('add-waypoint-sheet');
     } else {
@@ -1131,20 +1129,14 @@
     if (current) sel.value = current;
   }
 
-  // 종류 토글 버튼/소속공항 필드 표시만 갱신 (아이콘/색상은 건드리지 않음 — openEditPoint의 기존값 채우기용)
+  // 종류 토글 버튼/소속공항 필드 표시 갱신 — WayPoint/Report Point는 아이콘/색상을 타입별 고정값으로
+  // 통일하므로(항법 보조 표식은 사용자마다 다르게 보이면 혼란을 줌) 별도 선택 UI는 두지 않는다
   function applyAwKindUI(kind) {
     awKind = kind;
     $id('aw-kind-waypoints').classList.toggle('active', kind === 'waypoints');
     $id('aw-kind-reportPoints').classList.toggle('active', kind === 'reportPoints');
     $id('aw-group-field').style.display = kind === 'reportPoints' ? '' : 'none';
     if (kind === 'reportPoints') populateReportPointGroupSelect();
-  }
-
-  // 사용자가 종류 토글을 직접 클릭했을 때 — 아이콘/색상 강조를 그 종류의 기본값으로 자동 전환(제안)한다.
-  // 이후 사용자가 아이콘/색상을 직접 다시 고르면 그 선택이 우선되고, 다시 토글을 누르기 전까진 유지된다.
-  function onAwKindToggle(kind) {
-    applyAwKindUI(kind);
-    waypointPicker.setValue(Icons.defaultIcon(kind), Icons.defaultColor(kind));
   }
 
   function resetLandingForm() {
@@ -1165,7 +1157,7 @@
     $id('aw-lng').value = '';
     $id('aw-memo').value = '';
     $id('aw-group').value = '';
-    onAwKindToggle('waypoints');
+    applyAwKindUI('waypoints');
     editingPoint = null;
     $id('add-waypoint-title').textContent = 'WayPoint 추가';
   }
@@ -1230,8 +1222,8 @@
     if (!name || isNaN(lat) || isNaN(lng)) { toast('이름과 좌표를 입력하세요'); return; }
     if (lat < 30 || lat > 43 || lng < 122 || lng > 133) { toast('좌표 범위를 확인하세요 (한국 인근)'); return; }
     var kind = awKind;
-    var picked = waypointPicker.getValue();
-    var fields = { name: name, lat: lat, lng: lng, memo: $id('aw-memo').value.trim(), icon: picked.icon, color: picked.color };
+    // 아이콘/색상은 항법 보조 표식 성격상 개인화하지 않고 타입별 고정값으로 저장한다
+    var fields = { name: name, lat: lat, lng: lng, memo: $id('aw-memo').value.trim(), icon: Icons.defaultIcon(kind), color: Icons.defaultColor(kind) };
     if (kind === 'reportPoints') fields.group = $id('aw-group').value;
     var wasEditing = !!editingPoint;
     if (editingPoint) {
@@ -1434,8 +1426,8 @@
     $id('al-cancel-btn').addEventListener('click', function () { closeSheet('add-landing-sheet'); resetLandingForm(); });
 
     // WayPoint 추가
-    $id('aw-kind-waypoints').addEventListener('click', function () { onAwKindToggle('waypoints'); });
-    $id('aw-kind-reportPoints').addEventListener('click', function () { onAwKindToggle('reportPoints'); });
+    $id('aw-kind-waypoints').addEventListener('click', function () { applyAwKindUI('waypoints'); });
+    $id('aw-kind-reportPoints').addEventListener('click', function () { applyAwKindUI('reportPoints'); });
     $id('aw-pick-btn').addEventListener('click', function () {
       pickLocation(function (latlng) {
         $id('aw-lat').value = latlng.lat.toFixed(6);
@@ -1534,8 +1526,6 @@
     populateLandingKindSelect();
     landingPicker = Icons.mountPicker($id('al-icon-grid'), $id('al-color-row'),
       Icons.defaultIcon('offsite_landings'), Icons.defaultColor('offsite_landings'));
-    waypointPicker = Icons.mountPicker($id('aw-icon-grid'), $id('aw-color-row'),
-      Icons.defaultIcon('waypoints'), Icons.defaultColor('waypoints'));
     $id('maptype-select').addEventListener('change', function () {
       MapView.setMapType(this.value);
       localStorage.setItem('skn_maptype', this.value);
