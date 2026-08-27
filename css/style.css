@@ -60,22 +60,27 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 }
 .top-inner{display:flex;align-items:center;gap:8px;pointer-events:auto}
 
-/* 로고 — 모바일 기본값: 아이콘만(원형 배지). 600px 이상에서 "항법지도" 텍스트 추가 */
-.logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800}
+/* 로고 — 모바일 기본값: 아이콘만(원형 배지). 600px 이상에서 "항법지도" 텍스트 추가.
+   flex-shrink:0 + white-space:nowrap 필수: 태블릿 폭에서 버튼 라벨까지 다 펼쳐지면 top-inner
+   총 너비가 빠듯해지는데, 기본 white-space에서는 한글이 음절 단위로 줄바꿈 가능(min-content가
+   글자 하나 폭)이라 flex-shrink 계산 시 "항법지도"가 한 글자씩 세로로 쌓이는 버그가 있었다.
+   flex-shrink:0으로 로고 자체를 압축 대상에서 제외하고, nowrap으로 줄바꿈 여지를 아예 없앤다 */
+.logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;flex-shrink:0}
 .logo-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;
   width:32px;height:32px;border-radius:50%;color:var(--sk-orange);
   background:rgba(255,107,0,0.14);border:1px solid rgba(255,107,0,0.3)}
 .logo-icon svg{width:18px;height:18px}
-.logo .nav{display:none;color:var(--text);font-weight:400;font-size:13px}
+.logo .nav{display:none;color:var(--text);font-weight:400;font-size:13px;white-space:nowrap}
 .top-spacer{flex:1}
 
 /* 상단바 버튼(검색/레이어/동기화/로그아웃) — 모바일 기본값: 34px 원형 아이콘 버튼(라벨 숨김).
-   600px 이상에서 라벨이 붙은 알약형 버튼으로, 900px 이상에서 패딩/폰트를 넉넉하게 키운다 */
+   600px 이상에서 라벨이 붙은 알약형 버튼으로, 900px 이상에서 패딩/폰트를 넉넉하게 키운다.
+   btn-label도 로고와 같은 이유로 white-space:nowrap을 미리 걸어 같은 버그를 예방한다 */
 .top-btn{background:rgba(13,21,32,0.85);border:1px solid var(--border);border-radius:50%;
   color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
   backdrop-filter:blur(8px);width:34px;height:34px;padding:0;flex-shrink:0}
 .top-btn .btn-icon{font-size:15px;line-height:1}
-.top-btn .btn-label{display:none}
+.top-btn .btn-label{display:none;white-space:nowrap}
 
 @media (min-width:600px){
   .logo .nav{display:inline}
