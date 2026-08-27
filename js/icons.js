@@ -7,9 +7,10 @@
   // building-hospital은 더 이상 선택지에 없지만, 기존에 그 값으로 저장된 데이터가 있을 수 있어
   // 렌더링 함수(shapeInner/glyphInner)에서는 그대로 남겨 마이그레이션 없이도 계속 정상 표시된다.
   var ICON_PRESETS = ['ti-plane', 'ti-helipad', 'ti-hospital', 'ti-circle', 'ti-square', 'ti-diamond'];
-  // 흰색/노랑/파랑/녹색/SK오렌지/빨강 — 색상은 항목마다 원본 hex 문자열 그대로 저장되므로
-  // (프리셋 인덱스가 아님) 이 배열을 바꿔도 기존에 다른 색으로 저장된 데이터는 영향받지 않는다
-  var COLOR_PRESETS = ['#FFFFFF', '#FFD400', '#378ADD', '#1D9E75', '#EE6C0F', '#E24B4A'];
+  // 노랑/파랑/녹색/SK오렌지/빨강 — 색상은 항목마다 원본 hex 문자열 그대로 저장되므로
+  // (프리셋 인덱스가 아님) 이 배열을 바꿔도 기존에 다른 색으로 저장된 데이터는 영향받지 않는다.
+  // 흰색은 팔레트에서 제외(5종 전부 흰색 심볼이 잘 보이는 색이라 대비 처리 불필요)
+  var COLOR_PRESETS = ['#FFD400', '#378ADD', '#1D9E75', '#EE6C0F', '#E24B4A'];
 
   // 타입별 기본 아이콘/색상 — icon/color 필드가 없는(마이그레이션 전) base 항목의 폴백.
   // waypoints/reportPoints는 이전부터 지도에 서로 다른 색(파랑/하늘색)의 원으로 렌더링되던 값을
@@ -28,27 +29,18 @@
   function iconOf(type, item) { return (item && item.icon) || defaultIcon(type); }
   function colorOf(type, item) { return (item && item.color) || defaultColor(type); }
 
-  // 흰색/노랑처럼 밝은 배경색에서는 기본 흰색 테두리·심볼이 거의 안 보이므로 이 두 색만
-  // 검정으로 대비를 준다. 프리셋이 6개로 고정돼 있어 범용 밝기계산 없이 하드코딩으로 충분하다.
-  function contrastColor(bgColor) {
-    var c = (bgColor || '').toUpperCase();
-    return (c === '#FFFFFF' || c === '#FFD400') ? '#000000' : '#ffffff';
-  }
-
   // 순수 도형 프리셋 — 색칠된 도형 자체를 표시(별도 배지 불필요)
   var SHAPE_KEYS = { 'ti-circle': 1, 'ti-square': 1, 'ti-triangle': 1, 'ti-diamond': 1, 'ti-star': 1 };
 
   function shapeInner(key, color) {
-    var stroke = contrastColor(color);
-    if (key === 'ti-circle') return '<circle cx="12" cy="12" r="9" fill="' + color + '" stroke="' + stroke + '" stroke-width="2"/>';
-    if (key === 'ti-square') return '<rect x="3.5" y="3.5" width="17" height="17" rx="3" fill="' + color + '" stroke="' + stroke + '" stroke-width="2"/>';
-    if (key === 'ti-triangle') return '<path d="M12 3 L21 20 L3 20 Z" fill="' + color + '" stroke="' + stroke + '" stroke-width="2" stroke-linejoin="round"/>';
-    if (key === 'ti-diamond') return '<path d="M12 2 L22 12 L12 22 L2 12 Z" fill="' + color + '" stroke="' + stroke + '" stroke-width="2" stroke-linejoin="round"/>';
-    return '<path d="M12 2.5 L14.9 9.3 L22.3 9.9 L16.6 14.6 L18.5 21.8 L12 17.8 L5.5 21.8 L7.4 14.6 L1.7 9.9 L9.1 9.3 Z" fill="' + color + '" stroke="' + stroke + '" stroke-width="1.5" stroke-linejoin="round"/>'; // ti-star
+    if (key === 'ti-circle') return '<circle cx="12" cy="12" r="9" fill="' + color + '" stroke="#ffffff" stroke-width="2"/>';
+    if (key === 'ti-square') return '<rect x="3.5" y="3.5" width="17" height="17" rx="3" fill="' + color + '" stroke="#ffffff" stroke-width="2"/>';
+    if (key === 'ti-triangle') return '<path d="M12 3 L21 20 L3 20 Z" fill="' + color + '" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>';
+    if (key === 'ti-diamond') return '<path d="M12 2 L22 12 L12 22 L2 12 Z" fill="' + color + '" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>';
+    return '<path d="M12 2.5 L14.9 9.3 L22.3 9.9 L16.6 14.6 L18.5 21.8 L12 17.8 L5.5 21.8 L7.4 14.6 L1.7 9.9 L9.1 9.3 Z" fill="' + color + '" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>'; // ti-star
   }
 
-  // 아이콘형 프리셋 — 색칠된 원형 배지 위에 심볼(지도 마커 스타일과 통일). 배지 테두리와 심볼
-  // 색은 둘 다 contrastColor로 정해서, 밝은 배지 위에서도 검정으로 또렷하게 보이게 한다.
+  // 아이콘형 프리셋 — 색칠된 원형 배지 위에 흰색 심볼(지도 마커 스타일과 통일)
   var GLYPH_PATHS = {
     'ti-plane': 'M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2.5 1.5V22l4-1 4 1v-1.5L13 19v-4.5z',
     'ti-map-pin': 'M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z',
@@ -56,11 +48,10 @@
   };
 
   function glyphInner(key, color) {
-    var symbol = contrastColor(color);
-    var badge = '<circle cx="12" cy="12" r="9" fill="' + color + '" stroke="' + symbol + '" stroke-width="2"/>';
+    var badge = '<circle cx="12" cy="12" r="9" fill="' + color + '" stroke="#ffffff" stroke-width="2"/>';
     if (key === 'ti-building') {
       return badge +
-        '<rect x="7.5" y="7" width="9" height="11" fill="' + symbol + '"/>' +
+        '<rect x="7.5" y="7" width="9" height="11" fill="#ffffff"/>' +
         '<rect x="9" y="9" width="2" height="2" fill="' + color + '"/>' +
         '<rect x="13" y="9" width="2" height="2" fill="' + color + '"/>' +
         '<rect x="9" y="12.5" width="2" height="2" fill="' + color + '"/>' +
@@ -68,22 +59,22 @@
     }
     if (key === 'ti-building-hospital') { // 더 이상 선택 불가 — 기존 저장 데이터 렌더링용으로만 유지
       return badge +
-        '<rect x="7.5" y="7" width="9" height="11" fill="' + symbol + '"/>' +
+        '<rect x="7.5" y="7" width="9" height="11" fill="#ffffff"/>' +
         '<rect x="10.7" y="9" width="2.6" height="7" fill="' + color + '"/>' +
         '<rect x="9" y="11.7" width="6" height="2.6" fill="' + color + '"/>';
     }
     if (key === 'ti-helipad') { // 원 안에 "H" — 헬리패드
       return badge +
-        '<text x="12" y="16.5" font-size="11" font-weight="900" text-anchor="middle" fill="' + symbol + '" font-family="Arial,sans-serif">H</text>';
+        '<text x="12" y="16.5" font-size="11" font-weight="900" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif">H</text>';
     }
     if (key === 'ti-hospital') { // 원 안에 십자가 — building-hospital의 단순화 버전
       return badge +
-        '<rect x="10.5" y="6.5" width="3" height="11" rx="0.5" fill="' + symbol + '"/>' +
-        '<rect x="6.5" y="10.5" width="11" height="3" rx="0.5" fill="' + symbol + '"/>';
+        '<rect x="10.5" y="6.5" width="3" height="11" rx="0.5" fill="#ffffff"/>' +
+        '<rect x="6.5" y="10.5" width="11" height="3" rx="0.5" fill="#ffffff"/>';
     }
     var path = GLYPH_PATHS[key];
     if (!path) return shapeInner('ti-circle', color);
-    return badge + '<g transform="translate(4,4) scale(0.67)"><path d="' + path + '" fill="' + symbol + '"/></g>';
+    return badge + '<g transform="translate(4,4) scale(0.67)"><path d="' + path + '" fill="#ffffff"/></g>';
   }
 
   function innerSvg(key, color) {
@@ -124,8 +115,7 @@
     COLOR_PRESETS.forEach(function (hex) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      var isWhite = hex.toUpperCase() === '#FFFFFF'; // 흰색은 어두운 배경에 묻히므로 옅은 테두리로 구분
-      btn.className = 'color-swatch' + (isWhite ? ' color-swatch-light' : '') + (hex === selected ? ' selected' : '');
+      btn.className = 'color-swatch' + (hex === selected ? ' selected' : '');
       btn.style.background = hex;
       btn.addEventListener('click', function () { onSelect(hex); });
       container.appendChild(btn);

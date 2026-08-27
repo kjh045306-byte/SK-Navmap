@@ -1,5 +1,5 @@
 /* SK 항법지도 2.0 — 서비스워커 (오프라인 캐싱) */
-var CACHE_NAME = 'sk-navmap-20f31ef';
+var CACHE_NAME = 'sk-navmap-b22466f';
 var ASSET_URLS = [
   './',
   './index.html',

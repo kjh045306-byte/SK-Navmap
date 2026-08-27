@@ -369,7 +369,6 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .icon-grid-btn.selected{border-color:var(--sk-orange);box-shadow:0 0 0 1px var(--sk-orange)}
 .color-swatch-row{display:flex;gap:12px;flex-wrap:wrap}
 .color-swatch{width:34px;height:34px;border-radius:50%;border:none;padding:0;cursor:pointer}
-.color-swatch-light{border:1px solid rgba(255,255,255,0.3)} /* 흰색 등 밝은 스와치가 어두운 배경에 묻히지 않도록 */
 .color-swatch.selected{box-shadow:0 0 0 2px var(--panel),0 0 0 4px #ffffff}
 .form-pick-row{display:flex;gap:8px}
 .form-pick-row .form-input{flex:1}
