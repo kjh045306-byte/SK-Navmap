@@ -31,6 +31,10 @@
   var drawFinalCoords = null; // 완료 버튼으로 확정된 최종 좌표 — 정보입력 폼에서 저장할 값
   var drawFinalGeomType = null; // 'LineString' | 'Polygon'
   var dziColorPicker = null; // 새 구역 정보입력 폼(draw-zone-info-sheet) 색상 선택 컴포넌트
+  // 거리측정(일회성 도구 — 저장 안 함)
+  var measureActive = false;
+  var measurePoints = [];
+  var measureUnit = 'NM'; // 'NM' | 'm'
   var currentSearchResult = null; // 장소 검색 결과 중 선택된 항목 { name, address, lat, lng }
   var routeComposeActive = false; // 항법경로 작성 폼이 열려 있는 동안(경유점 탭 선택 중 포함) true
   var selectedDepPoint = null; // 현재 선택된 출발지 { name, lat, lng } — 드롭다운/지도탭 공통 소스
@@ -384,6 +388,66 @@
     var dist = Calc.routeDistanceNM(pts);
     var t130 = Calc.timeMin(dist, 130);
     $id('compose-stats').textContent = '거리 ' + dist.toFixed(1) + 'NM · ' + t130.toFixed(1) + '분';
+  }
+
+  /* ── 거리측정 도구 — 경로작성/구역그리기와 동일한 "탭해서 점 찍기" + 미리보기선 인터랙션을
+     재사용하되, 스냅이 없고 결과를 어디에도 저장하지 않는 일회성 도구 ── */
+  function showMeasureBar() {
+    $id('action-row-normal').style.display = 'none';
+    $id('compose-row').style.display = 'none';
+    $id('measure-row').style.display = 'flex';
+  }
+  function hideMeasureBar() {
+    $id('measure-row').style.display = 'none';
+    $id('action-row-normal').style.display = '';
+  }
+
+  function updateMeasureDistance() {
+    var nm = Calc.routeDistanceNM(measurePoints);
+    var text = measureUnit === 'NM' ? nm.toFixed(2) + ' NM' : Math.round(nm * 1852) + ' m';
+    $id('measure-dist-value').textContent = text;
+  }
+
+  function measureTapHandler(latlng) {
+    measurePoints.push(latlng);
+    MapView.previewDraftRoute(measurePoints);
+    updateMeasureDistance();
+  }
+
+  function startMeasure() {
+    measureActive = true;
+    measurePoints = [];
+    measureUnit = 'NM';
+    $id('measure-unit-btn').textContent = measureUnit;
+    updateMeasureDistance();
+    showMeasureBar();
+    MapView.clearZoneClickHandler();
+    MapView.setMapClickHandler(measureTapHandler);
+    MapView.setRoutePointClickHandler(function (point) { measureTapHandler({ lat: point.lat, lng: point.lng }); });
+    toast('지도를 탭해 거리를 측정할 지점을 찍으세요');
+  }
+
+  function toggleMeasureUnit() {
+    measureUnit = measureUnit === 'NM' ? 'm' : 'NM';
+    $id('measure-unit-btn').textContent = measureUnit;
+    updateMeasureDistance();
+  }
+
+  function undoMeasurePoint() {
+    if (measurePoints.length === 0) return;
+    measurePoints.pop();
+    MapView.previewDraftRoute(measurePoints);
+    updateMeasureDistance();
+  }
+
+  function endMeasure() {
+    measureActive = false;
+    measurePoints = [];
+    MapView.clearMapClickHandler();
+    MapView.clearRoutePointClickHandler();
+    MapView.setZoneClickHandler(onZoneClick);
+    MapView.clearDraftRoute();
+    hideMeasureBar();
   }
 
   // 근처 등록지점 자동 스냅 반경 (50~100m 중간값)
@@ -1640,6 +1704,10 @@
     $id('search-btn').addEventListener('click', openSearchSheet);
     $id('layer-btn').addEventListener('click', function () { syncLayerSheetUI(); openSheet('layer-sheet'); });
     $id('sync-btn').addEventListener('click', function () { runCloudSync(false); });
+    $id('measure-btn').addEventListener('click', startMeasure);
+    $id('measure-unit-btn').addEventListener('click', toggleMeasureUnit);
+    $id('measure-undo-btn').addEventListener('click', undoMeasurePoint);
+    $id('measure-done-btn').addEventListener('click', endMeasure);
     $id('route-select-btn').addEventListener('click', function () {
       renderRouteTabs();
       renderRouteList();

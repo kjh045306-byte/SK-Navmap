@@ -79,7 +79,8 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .top-btn{background:rgba(13,21,32,0.85);border:1px solid var(--border);border-radius:50%;
   color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
   backdrop-filter:blur(8px);width:34px;height:34px;padding:0;flex-shrink:0}
-.top-btn .btn-icon{font-size:15px;line-height:1}
+.top-btn .btn-icon{font-size:15px;line-height:1;display:flex}
+.top-btn .btn-icon svg{width:15px;height:15px}
 .top-btn .btn-label{display:none;white-space:nowrap}
 
 @media (min-width:600px){
@@ -193,6 +194,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .fab-undo{background:rgba(255,255,255,0.1);color:#fff;border:1px solid var(--border);font-size:18px}
 .fab-save{background:var(--sk-orange);color:#fff;font-size:18px}
 .fab-cancel{background:rgba(255,85,85,0.15);color:#ff5555;border:1px solid rgba(255,85,85,0.35);font-size:18px}
+.fab-unit{background:rgba(0,200,255,0.15);color:var(--blue);border:1px solid rgba(0,200,255,0.35);font-size:13px;font-weight:800}
 
 /* ══════════════════════════ 바텀시트 공통 ══════════════════════════ */
 .sheet{position:fixed;inset:0;z-index:200;pointer-events:none}

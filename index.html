@@ -124,6 +124,18 @@
       <button class="top-btn" id="search-btn" aria-label="검색"><span class="btn-icon">🔍</span><span class="btn-label">검색</span></button>
       <button class="top-btn" id="layer-btn" aria-label="레이어"><span class="btn-icon">🗺️</span><span class="btn-label">레이어</span></button>
       <button class="top-btn" id="sync-btn" aria-label="동기화" title="클라우드에서 최신 데이터 받아오기"><span class="btn-icon">🔄</span><span class="btn-label">동기화</span></button>
+      <button class="top-btn" id="measure-btn" aria-label="거리측정">
+        <span class="btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.5" y="8" width="19" height="8" rx="2"/>
+            <line x1="6" y1="8" x2="6" y2="11"/>
+            <line x1="9.5" y1="8" x2="9.5" y2="11"/>
+            <line x1="13" y1="8" x2="13" y2="11"/>
+            <line x1="16.5" y1="8" x2="16.5" y2="11"/>
+          </svg>
+        </span>
+        <span class="btn-label">거리측정</span>
+      </button>
     </div>
   </div>
 
@@ -158,6 +170,16 @@
       <button class="action-fab fab-undo" id="compose-undo-btn" title="마지막 지점 취소">↩️</button>
       <button class="action-fab fab-save" id="compose-save-btn" title="저장" style="display:none">💾</button>
       <button class="action-fab fab-cancel" id="compose-cancel-btn" title="작성 종료">✕</button>
+    </div>
+    <!-- 거리측정 모드 — 저장하지 않는 일회성 도구, 경로작성과 같은 "탭해서 점 찍기" 재사용 -->
+    <div class="action-row compose-row" id="measure-row" style="display:none">
+      <div class="compose-main">
+        <div class="compose-main-title">총 거리</div>
+        <div class="compose-main-sub" id="measure-dist-value">0.0 NM</div>
+      </div>
+      <button class="action-fab fab-unit" id="measure-unit-btn" title="단위 전환(NM/m)">NM</button>
+      <button class="action-fab fab-undo" id="measure-undo-btn" title="마지막 점 취소">↩️</button>
+      <button class="action-fab fab-cancel" id="measure-done-btn" title="측정 종료">✕</button>
     </div>
   </div>
 </div>
