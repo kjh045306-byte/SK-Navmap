@@ -100,6 +100,22 @@ button,input,select,textarea{font-family:inherit;color:inherit}
   border-radius:8px;color:#fff;font-size:12px;padding:6px 12px;cursor:pointer;white-space:nowrap}
 .pick-hint-btn.done{background:var(--sk-orange);border-color:var(--sk-orange)}
 
+/* 구역(CTRZ/관제권/금지위험제한공역) 편집 중 상단 바 — 지도가 계속 인터랙션 가능해야 하므로 시트가 아닌 pick-hint류 오버레이 */
+.zone-edit-bar{
+  position:absolute;top:0;left:0;right:0;z-index:81;
+  padding:calc(var(--safe-top) + 10px) 14px 12px;
+  background:rgba(17,23,32,0.95);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  display:none;flex-direction:column;gap:8px;
+}
+.zone-edit-bar.show{display:flex}
+.zone-edit-row{display:flex;gap:8px;align-items:center}
+.zone-edit-row .form-input,.zone-edit-row .form-select{flex:1}
+.zone-edit-row .color-swatch-row{flex:1}
+.zone-edit-btns{display:flex;gap:8px;flex-shrink:0}
+.zone-edit-hint{font-size:11px;color:var(--dim)}
+.zone-info-val{font-size:13px;color:var(--text);white-space:pre-wrap}
+
 /* 하단 액션바 */
 .bottom-bar{
   position:absolute;bottom:0;left:0;right:0;z-index:50;
@@ -432,6 +448,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
   .result-bar.show{transform:translate(-50%,0)}
   .pick-hint{max-width:640px;left:50%;transform:translate(-50%,-100%)}
   .pick-hint.show{transform:translate(-50%,0)}
+  .zone-edit-bar{max-width:640px;left:50%;transform:translateX(-50%)}
   .via-pick-panel{max-width:640px;left:50%;transform:translateX(-50%)}
   .route-point-chooser{max-width:640px;left:50%;transform:translateX(-50%)}
 }

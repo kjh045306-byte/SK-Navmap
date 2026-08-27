@@ -133,6 +133,24 @@
     };
   }
 
+  // 색상 스와치만 필요한 곳(구역/CTRZ류 편집)을 위한 단독 컴포넌트. onChange가 있으면 선택할 때마다
+  // 즉시 호출한다(지도에 실시간 반영하는 용도) — mountPicker와 달리 getValue만으로 폴링하지 않아도 됨.
+  function mountColorPicker(colorEl, initialColor, onChange) {
+    var state = { color: initialColor };
+    function render() {
+      buildColorRow(colorEl, state.color, function (hex) {
+        state.color = hex;
+        render();
+        if (onChange) onChange(hex);
+      });
+    }
+    render();
+    return {
+      setValue: function (color) { state.color = color; render(); },
+      getValue: function () { return state.color; }
+    };
+  }
+
   global.Icons = {
     PRESETS: ICON_PRESETS,
     COLORS: COLOR_PRESETS,
@@ -142,6 +160,7 @@
     colorOf: colorOf,
     svgMarkup: svgMarkup,
     markerIcon: markerIcon,
-    mountPicker: mountPicker
+    mountPicker: mountPicker,
+    mountColorPicker: mountColorPicker
   };
 })(window);

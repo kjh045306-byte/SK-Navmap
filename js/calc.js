@@ -73,12 +73,22 @@
     };
   }
 
+  // coords 배열의 첫 좌표와 마지막 좌표가 같은지로 "닫힌 구역(면)"인지 판정한다.
+  // geomType 문자열(Polygon/LineString)은 원본(KMZ) placemark 타입을 그대로 옮겨온 값이라
+  // 실제 폐합 여부와 어긋나는 경우가 있으므로(예: Polygon인데 열려있는 항목), 좌표로 직접 판정한다.
+  function isClosedRing(coords) {
+    if (!coords || coords.length < 3) return false;
+    var a = coords[0], b = coords[coords.length - 1];
+    return Math.abs(a.lat - b.lat) < 1e-9 && Math.abs(a.lng - b.lng) < 1e-9;
+  }
+
   global.Calc = {
     haversineNM: haversineNM,
     routeDistanceNM: routeDistanceNM,
     timeMin: timeMin,
     fuelLbs: fuelLbs,
     toFMS: toFMS,
-    toDMS: toDMS
+    toDMS: toDMS,
+    isClosedRing: isClosedRing
   };
 })(window);

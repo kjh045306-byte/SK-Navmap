@@ -9,10 +9,11 @@
   var LS_CLOUD_SEEN = 'skn_cloud_seen'; // 직전 동기화 시점에 클라우드에 존재했던 사용자추가 항목 id 목록(타입별) — 다른 기기의 삭제를 구분하기 위한 용도
   var CLOUD_ROOT = 'userData'; // Firebase Realtime Database 경로 루트
 
-  // 사용자가 추가/수정/삭제할 수 있는 타입(오버레이 대상) — 착륙장 5종(공항·비행장 포함) + WayPoint + 공항 Report Point + 경로
-  var TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'waypoints', 'reportPoints', 'routes'];
+  // 사용자가 추가/수정/삭제할 수 있는 타입(오버레이 대상) — 착륙장 5종(공항·비행장 포함) + WayPoint + 공항 Report Point
+  // + CTRZ/관제권/금지위험제한공역(기존 구역 수정/삭제만 가능 — 신규 추가 UI는 3단계에서 아직 없음) + 경로
+  var TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'waypoints', 'reportPoints', 'ctrz', 'gwanjegwon', 'restricted', 'routes'];
   // 참고용(읽기전용) 레이어 — base 데이터 그대로 표시, 사용자 추가/수정 없음
-  var REFERENCE_TYPES = ['cp', 'ctrz', 'gwanjegwon', 'restricted'];
+  var REFERENCE_TYPES = ['cp'];
   // 경로 작성 시 드롭다운 대상이 되는 "장소"(사용자 추가/편집 가능) 타입
   var POINT_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'waypoints'];
   // 이름 매칭/스냅(근처지점 자동 스냅, depName·arrName 산출)의 대상 — CP/ReportPoint도 마커클릭으로 경로에 쓰일 수 있으므로 포함
@@ -256,6 +257,11 @@
   function nearestPointName(lat, lng, maxNm) {
     var p = nearestPoint(lat, lng, maxNm);
     return p ? p.name : null;
+  }
+
+  // 구역(CTRZ/관제권/금지위험제한공역) 항목의 색상 — 항목별 color 필드가 없으면 layerStyles[type].color로 폴백
+  function zoneColorOf(type, item) {
+    return (item && item.color) || (LAYER_STYLES[type] && LAYER_STYLES[type].color) || '#ffffff';
   }
 
   // 현재 등록된 Report Point들의 소속 공항(group) 코드 목록 — "소속 공항" 드롭다운용
@@ -506,6 +512,7 @@
     nearestPoint: nearestPoint,
     nearestPointName: nearestPointName,
     reportPointGroups: reportPointGroups,
+    zoneColorOf: zoneColorOf,
     get orphanedOverlay() { return orphanedOverlay; }
   };
 })(window);

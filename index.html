@@ -51,6 +51,22 @@
     <button class="pick-hint-btn" id="pick-hint-cancel">취소</button>
   </div>
 
+  <!-- 구역(CTRZ/관제권/금지위험제한공역) 편집 중 상단 바 — 점 드래그/변 중간점 삽입은 지도 위에서 직접(editable 핸들) -->
+  <div class="zone-edit-bar" id="zone-edit-bar">
+    <div class="zone-edit-row">
+      <input class="form-input" id="ze-name" placeholder="이름(선택 입력)">
+      <select class="form-select" id="ze-group" style="display:none"></select>
+    </div>
+    <div class="zone-edit-row">
+      <div class="color-swatch-row" id="ze-color-row"></div>
+      <div class="zone-edit-btns">
+        <button class="pick-hint-btn done" id="zone-edit-save-btn">저장</button>
+        <button class="pick-hint-btn" id="zone-edit-cancel-btn">취소</button>
+      </div>
+    </div>
+    <div class="zone-edit-hint">점을 드래그하거나 변 중간점을 드래그해 추가, Alt+클릭(우클릭)으로 점 삭제</div>
+  </div>
+
   <!-- 경유점 선택 중 목록 (지도 탭 모드에서도 순서/좌표 확인용) -->
   <div class="via-pick-panel" id="via-pick-panel" style="display:none">
     <div class="via-list" id="via-pick-list"></div>
@@ -232,6 +248,80 @@
     <div class="sr-actions" id="marker-route-actions"></div>
     <div class="related-title">관련 항법경로</div>
     <div class="related-scroll" id="related-routes"></div>
+    <div class="sheet-bottom"></div>
+  </div>
+</div>
+
+<!-- ── 구역(CTRZ/관제권/금지위험제한공역) 정보 시트 ── -->
+<div class="sheet" id="zone-sheet">
+  <div class="sheet-overlay"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="marker-header">
+      <div>
+        <div class="marker-name" id="z-name">—</div>
+        <div class="marker-type" id="z-type">—</div>
+      </div>
+      <div class="marker-header-btns">
+        <button class="icon-btn" id="zone-edit-btn" title="수정">✏️</button>
+        <button class="icon-btn danger" id="zone-delete-btn" title="삭제">🗑️</button>
+        <button class="icon-btn" id="zone-close-btn">✕</button>
+      </div>
+    </div>
+    <div class="form-body">
+      <div class="form-group" id="zone-group-row" style="display:none">
+        <div class="form-label">분류</div>
+        <div class="zone-info-val" id="z-group">—</div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">메모</div>
+        <div class="zone-info-val" id="z-memo">—</div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">좌표</div>
+        <div class="zone-info-val" id="z-pointcount">—</div>
+      </div>
+    </div>
+    <div class="sheet-bottom"></div>
+  </div>
+</div>
+
+<!-- ── 구역 내 단일 지점(restricted의 Point 항목) 수정 시트 — 착륙장 편집과 동일한 단순 좌표편집 폼 ── -->
+<div class="sheet" id="zone-point-sheet">
+  <div class="sheet-overlay"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">구역 지점 수정</div>
+    <div class="form-body">
+      <div class="form-group">
+        <div class="form-label">이름</div>
+        <input class="form-input" id="zp-name">
+      </div>
+      <div class="form-group">
+        <div class="form-label">분류</div>
+        <select class="form-select" id="zp-group"></select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">색상</div>
+        <div class="color-swatch-row" id="zp-color-row"></div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">좌표</div>
+        <div class="form-pick-row">
+          <input class="form-input" id="zp-lat" placeholder="위도(LAT)" inputmode="decimal">
+          <input class="form-input" id="zp-lng" placeholder="경도(LNG)" inputmode="decimal">
+          <button class="btn-pick" id="zp-pick-btn">📍 지도선택</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">메모</div>
+        <textarea class="form-textarea" id="zp-memo" placeholder="선택 입력"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" id="zp-cancel-btn">취소</button>
+        <button class="btn-primary" id="zp-save-btn">저장</button>
+      </div>
+    </div>
     <div class="sheet-bottom"></div>
   </div>
 </div>

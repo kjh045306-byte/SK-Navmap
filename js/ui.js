@@ -17,6 +17,12 @@
   var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports'];
   var landingPicker = null; // 착륙장 추가/수정 폼의 아이콘/색상 선택 컴포넌트 (init에서 mountPicker로 생성)
   var awKind = 'waypoints'; // add-waypoint-sheet에서 현재 선택된 종류('waypoints'|'reportPoints')
+  // 구역(CTRZ/관제권/금지위험제한공역) — 이번 단계는 기존 항목 수정/삭제만 가능(신규 추가 UI 없음)
+  var RESTRICTED_GROUPS = ['P AREA', 'D AREA', 'R AREA', 'NOTAM구역']; // restricted의 group 값은 이 4종으로 고정
+  var editingZonePoint = null; // { type, id } — restricted의 Point 항목(단순 좌표편집 폼) 수정 중일 때
+  var editingZoneShape = null; // { type, id } — LineString/Polygon 항목을 지도에서 직접(editable) 편집 중일 때
+  var zpColorPicker = null; // 구역 지점(zone-point-sheet) 색상 선택 컴포넌트
+  var zeColorPicker = null; // 구역 도형(zone-edit-bar) 색상 선택 컴포넌트
   var currentSearchResult = null; // 장소 검색 결과 중 선택된 항목 { name, address, lat, lng }
   var routeComposeActive = false; // 항법경로 작성 폼이 열려 있는 동안(경유점 탭 선택 중 포함) true
   var selectedDepPoint = null; // 현재 선택된 출발지 { name, lat, lng } — 드롭다운/지도탭 공통 소스
@@ -889,6 +895,141 @@
     });
   }
 
+  /* ── 구역(CTRZ/관제권/금지위험제한공역) 클릭 → 정보시트. 항목별 geomType에 따라 편집 방식이 갈린다:
+     Point(restricted만 해당)는 착륙장류와 동일한 단순 좌표편집 폼, LineString/Polygon은 지도 위에서
+     Google Maps의 editable 핸들로 직접 점을 드래그/삽입/삭제한다. 신규 생성 UI는 이번 단계에 없다. ── */
+  function onZoneClick(item, type) {
+    var typeLabel = (Data.LAYER_STYLES[type] && Data.LAYER_STYLES[type].label) || type;
+    $id('z-name').textContent = item.name || '(이름 없음)';
+    $id('z-type').textContent = typeLabel;
+    if (item.group) {
+      $id('zone-group-row').style.display = '';
+      $id('z-group').textContent = item.group;
+    } else {
+      $id('zone-group-row').style.display = 'none';
+    }
+    $id('z-memo').textContent = item.memo || '(메모 없음)';
+    if (item.geomType === 'Point') {
+      $id('z-pointcount').textContent = '단일 지점';
+    } else {
+      var n = (item.coords || []).length;
+      $id('z-pointcount').textContent = n + '개 꼭짓점 · ' + (Calc.isClosedRing(item.coords) ? '닫힌 구역' : '열린 선');
+    }
+    $id('zone-edit-btn').onclick = function () {
+      closeSheet('zone-sheet');
+      openZoneEdit(type, item);
+    };
+    $id('zone-delete-btn').onclick = function () {
+      if (!confirm((item.name || '이 구역') + '을(를) 정말 삭제하시겠어요?')) return;
+      Data.deleteItemById(type, item.id);
+      Data.refreshFromLocal();
+      MapView.renderMarkers(onMarkerClick);
+      closeSheet('zone-sheet');
+      toast('삭제되었습니다');
+    };
+    openSheet('zone-sheet');
+  }
+
+  function populateRestrictedGroupSelect(sel, current) {
+    sel.innerHTML = '<option value="">선택안함</option>';
+    RESTRICTED_GROUPS.forEach(function (g) {
+      var opt = el('option', null, g);
+      opt.value = g;
+      sel.appendChild(opt);
+    });
+    sel.value = current || '';
+  }
+
+  function openZoneEdit(type, item) {
+    if (item.geomType === 'Point') openZonePointEdit(type, item);
+    else openZoneShapeEdit(type, item);
+  }
+
+  /* ── 구역 내 단일 지점(restricted의 Point 항목) 수정 — 착륙장 편집과 동일한 단순 좌표편집 폼 ── */
+  function openZonePointEdit(type, item) {
+    editingZonePoint = { type: type, id: item.id };
+    $id('zp-name').value = item.name || '';
+    populateRestrictedGroupSelect($id('zp-group'), item.group);
+    $id('zp-lat').value = item.lat;
+    $id('zp-lng').value = item.lng;
+    $id('zp-memo').value = item.memo || '';
+    zpColorPicker.setValue(Data.zoneColorOf(type, item));
+    MapView.setMarkerDraggable(type, item.id, true, function (latlng) {
+      $id('zp-lat').value = latlng.lat.toFixed(6);
+      $id('zp-lng').value = latlng.lng.toFixed(6);
+    });
+    openSheet('zone-point-sheet');
+  }
+
+  function closeZonePointEdit() {
+    if (editingZonePoint) MapView.setMarkerDraggable(editingZonePoint.type, editingZonePoint.id, false);
+    editingZonePoint = null;
+    closeSheet('zone-point-sheet');
+  }
+
+  function saveZonePoint() {
+    if (!editingZonePoint) return;
+    var name = $id('zp-name').value.trim();
+    var lat = parseFloat($id('zp-lat').value);
+    var lng = parseFloat($id('zp-lng').value);
+    if (!name || isNaN(lat) || isNaN(lng)) { toast('이름과 좌표를 입력하세요'); return; }
+    if (lat < 30 || lat > 43 || lng < 122 || lng > 133) { toast('좌표 범위를 확인하세요 (한국 인근)'); return; }
+    var type = editingZonePoint.type, id = editingZonePoint.id;
+    var fields = {
+      name: name, lat: lat, lng: lng,
+      group: $id('zp-group').value,
+      memo: $id('zp-memo').value.trim(),
+      color: zpColorPicker.getValue()
+    };
+    Data.updateItem(type, id, fields);
+    Data.refreshFromLocal();
+    MapView.setMarkerDraggable(type, id, false);
+    editingZonePoint = null;
+    MapView.renderMarkers(onMarkerClick);
+    closeSheet('zone-point-sheet');
+    toast('수정되었습니다');
+  }
+
+  /* ── 구역 도형(LineString/Polygon) 수정 — 지도 위 editable 핸들로 점을 직접 드래그/삽입/삭제 ── */
+  function showZoneEditBar() { $id('zone-edit-bar').classList.add('show'); }
+  function hideZoneEditBar() { $id('zone-edit-bar').classList.remove('show'); }
+
+  function openZoneShapeEdit(type, item) {
+    document.querySelectorAll('.sheet.open').forEach(function (s) { closeSheet(s.id); }); // 편집 중엔 지도가 인터랙션 가능해야 함
+    editingZoneShape = { type: type, id: item.id };
+    $id('ze-name').value = item.name || '';
+    var isRestricted = type === 'restricted';
+    $id('ze-group').style.display = isRestricted ? '' : 'none';
+    if (isRestricted) populateRestrictedGroupSelect($id('ze-group'), item.group);
+    zeColorPicker.setValue(Data.zoneColorOf(type, item));
+    MapView.setZoneEditable(type, item.id, true);
+    showZoneEditBar();
+    toast('점을 드래그하거나 변 중간점을 드래그해 추가하세요');
+  }
+
+  function cancelZoneShapeEdit() {
+    if (editingZoneShape) MapView.setZoneEditable(editingZoneShape.type, editingZoneShape.id, false);
+    editingZoneShape = null;
+    hideZoneEditBar();
+    MapView.renderMarkers(onMarkerClick); // Data는 건드리지 않았으므로 다시 그리면 원본 모양으로 되돌아간다
+  }
+
+  function saveZoneShapeEdit() {
+    if (!editingZoneShape) return;
+    var type = editingZoneShape.type, id = editingZoneShape.id;
+    var coords = MapView.getZonePath(type, id);
+    if (!coords || coords.length < 2) { toast('좌표를 확인하세요'); return; }
+    var fields = { name: $id('ze-name').value.trim(), color: zeColorPicker.getValue(), coords: coords };
+    if (type === 'restricted') fields.group = $id('ze-group').value;
+    Data.updateItem(type, id, fields);
+    Data.refreshFromLocal();
+    MapView.setZoneEditable(type, id, false);
+    editingZoneShape = null;
+    hideZoneEditBar();
+    MapView.renderMarkers(onMarkerClick);
+    toast('구역이 수정되었습니다');
+  }
+
   /* ── 경로 선택/표시 ── */
   function selectRouteAndShow(r) {
     MapView.selectRoute(r);
@@ -1396,6 +1537,26 @@
     }
     bindCoordCopy('fms-copy-btn', 'm-fms-lat', 'm-fms-lng');
     bindCoordCopy('dms-copy-btn', 'm-dms-lat', 'm-dms-lng');
+
+    // 구역(CTRZ/관제권/금지위험제한공역) 시트 — 기존 항목 수정/삭제만(신규 추가 없음)
+    $id('zone-close-btn').addEventListener('click', function () { closeSheet('zone-sheet'); });
+    $id('zp-pick-btn').addEventListener('click', function () {
+      pickLocation(function (latlng) {
+        $id('zp-lat').value = latlng.lat.toFixed(6);
+        $id('zp-lng').value = latlng.lng.toFixed(6);
+      });
+    });
+    $id('zp-save-btn').addEventListener('click', saveZonePoint);
+    $id('zp-cancel-btn').addEventListener('click', closeZonePointEdit);
+    $id('zone-edit-save-btn').addEventListener('click', saveZoneShapeEdit);
+    $id('zone-edit-cancel-btn').addEventListener('click', cancelZoneShapeEdit);
+    zpColorPicker = Icons.mountColorPicker($id('zp-color-row'), Icons.COLORS[0], function (hex) {
+      if (editingZonePoint) MapView.setZoneColor(editingZonePoint.type, editingZonePoint.id, hex);
+    });
+    zeColorPicker = Icons.mountColorPicker($id('ze-color-row'), Icons.COLORS[0], function (hex) {
+      if (editingZoneShape) MapView.setZoneColor(editingZoneShape.type, editingZoneShape.id, hex);
+    });
+    MapView.setZoneClickHandler(onZoneClick);
 
     // 추가 메뉴
     $id('menu-add-route').addEventListener('click', function () {

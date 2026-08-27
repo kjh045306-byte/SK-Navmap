@@ -7,8 +7,10 @@
   var POINT_LAYER_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'waypoints', 'reportPoints'];
   // 마커 크기(px) — 지정 없으면 착륙장류 기본값(30)
   var POINT_MARKER_SIZE = { waypoints: 16, reportPoints: 12 };
-  // 참고용(읽기전용) geomType 기반 레이어 (Point/LineString/Polygon 혼재, 클릭 인터랙션 없음)
-  var REFERENCE_GEOM_TYPES = ['ctrz', 'gwanjegwon', 'restricted'];
+  // 구역 레이어(CTRZ/관제권/금지위험제한공역) — Point/LineString/Polygon 혼재, 항목별 클릭 가능(수정/삭제),
+  // 단 이번 단계는 신규 추가 UI가 없으므로 기존 항목만 대상
+  var ZONE_TYPES = ['ctrz', 'gwanjegwon', 'restricted'];
+  var zoneClickHandler = null; // ui.js가 구역 클릭 시 정보시트를 열기 위해 설정
   var markers = { sk_landings: [], offsite_landings: [], hospital_landings: [], ultralight_landings: [], airports: [], waypoints: [], cp: [], ctrz: [], gwanjegwon: [], restricted: [], reportPoints: [] };
   var allRouteLines = []; // 전체 경로(초록, 얇음) — 레이어 ON시만 지도에 부착
   var selectedPolyline = null; // 저장된 경로 선택 시(오렌지) — 레이어 설정과 무관하게 항상 표시
@@ -206,36 +208,79 @@
     };
   }
 
-  // geomType(Point/LineString/Polygon 또는 없으면 Point로 간주)에 따라 마커/폴리라인/폴리곤으로 렌더링 (비인터랙티브 참고 레이어 전용)
-  function renderGeomItems(items, color, visible) {
-    return (items || []).map(function (item) {
-      var gt = item.geomType || 'Point';
-      if (gt === 'Point') {
-        return new google.maps.Marker({
-          position: { lat: item.lat, lng: item.lng },
-          map: visible ? map : null,
-          icon: circleIcon(color, 12),
-          title: item.name,
-          zIndex: 2
-        });
-      }
-      if (gt === 'Polygon') {
-        return new google.maps.Polygon({
-          paths: item.coords,
-          strokeColor: color, strokeWeight: 2, strokeOpacity: 0.9,
-          fillColor: color, fillOpacity: 0.12,
-          map: visible ? map : null,
-          zIndex: 2
-        });
-      }
-      return new google.maps.Polyline({
-        path: item.coords,
-        strokeColor: color, strokeWeight: 2, strokeOpacity: 0.85,
-        map: visible ? map : null,
-        zIndex: 2
+  // 구역(CTRZ/관제권/금지위험제한공역) 렌더링 — Point는 마커, 그 외는 좌표 폐합 여부(Calc.isClosedRing)로
+  // Polygon/Polyline을 선택한다(geomType 문자열은 원본 KMZ 표기라 실제 폐합 여부와 어긋나는 경우가 있어 신뢰하지 않음).
+  // 항목마다 zoneId를 심어두고(Point는 pointId도 함께) 클릭 시 zoneClickHandler(item, type)를 호출한다.
+  function setZoneClickListener(obj, item, type) {
+    obj.set('zoneId', item.id);
+    obj.addListener('click', function () {
+      if (zoneClickHandler) zoneClickHandler(item, type);
+    });
+  }
+
+  function renderZones() {
+    var layers = Data.getLayerState();
+    ZONE_TYPES.forEach(function (type) {
+      clearMarkerGroup(type);
+      Data.DB[type].forEach(function (item) {
+        var color = Data.zoneColorOf(type, item);
+        var visible = layers[type];
+        var obj;
+        if (item.geomType === 'Point') {
+          obj = new google.maps.Marker({
+            position: { lat: item.lat, lng: item.lng },
+            map: visible ? map : null,
+            icon: circleIcon(color, 12),
+            title: item.name,
+            zIndex: 2
+          });
+          obj.set('pointId', item.id); // 착륙장류와 동일한 setMarkerDraggable() 재사용을 위해
+        } else if (Calc.isClosedRing(item.coords)) {
+          obj = new google.maps.Polygon({
+            paths: item.coords,
+            strokeColor: color, strokeWeight: 2, strokeOpacity: 0.9,
+            fillColor: color, fillOpacity: 0.12,
+            map: visible ? map : null,
+            zIndex: 2
+          });
+        } else {
+          obj = new google.maps.Polyline({
+            path: item.coords,
+            strokeColor: color, strokeWeight: 2, strokeOpacity: 0.85,
+            map: visible ? map : null,
+            zIndex: 2
+          });
+        }
+        setZoneClickListener(obj, item, type);
+        markers[type].push(obj);
       });
     });
   }
+
+  // 구역(선/면) 편집 모드 on/off — google.maps.Polygon/Polyline의 내장 editable 핸들(점 드래그,
+  // 변 중간점 드래그로 삽입, Alt+클릭/우클릭으로 삭제)을 그대로 사용한다
+  function findZoneObj(type, id) {
+    return (markers[type] || []).find(function (m) { return m.get('zoneId') === id; });
+  }
+  function setZoneEditable(type, id, editable) {
+    var obj = findZoneObj(type, id);
+    if (obj && obj.setEditable) obj.setEditable(editable);
+  }
+  // 편집 중인 Polygon/Polyline의 현재 좌표를 읽어온다(점 추가/삭제로 개수가 달라져도 그대로 반영)
+  function getZonePath(type, id) {
+    var obj = findZoneObj(type, id);
+    if (!obj || !obj.getPath) return null;
+    return obj.getPath().getArray().map(function (ll) { return { lat: ll.lat(), lng: ll.lng() }; });
+  }
+  // 색상 선택 즉시 미리보기 — Marker(Point)는 아이콘을 다시 그리고, Polygon/Polyline은 옵션만 갱신
+  function setZoneColor(type, id, color) {
+    var obj = findZoneObj(type, id);
+    if (!obj) return;
+    if (obj.setIcon) obj.setIcon(circleIcon(color, 12));
+    else obj.setOptions({ strokeColor: color, fillColor: color });
+  }
+  function setZoneClickHandler(fn) { zoneClickHandler = fn; }
+  function clearZoneClickHandler() { zoneClickHandler = null; }
 
   function searchMarkerIcon() {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26">' +
@@ -375,12 +420,8 @@
       return mk;
     });
 
-    // 참고용 geomType 기반 레이어 (CTRZ/관제권/금지·위험·제한공역) — 비인터랙티브
-    REFERENCE_GEOM_TYPES.forEach(function (type) {
-      clearMarkerGroup(type);
-      var color = (styles[type] && styles[type].color) || '#ffffff';
-      markers[type] = renderGeomItems(Data.DB[type], color, layers[type]);
-    });
+    // 구역 레이어 (CTRZ/관제권/금지·위험·제한공역) — 클릭 시 zoneClickHandler(구역 정보시트)
+    renderZones();
 
     renderAllRouteLines(layers.routesAll);
   }
@@ -544,6 +585,11 @@
     clearDraftRoute: clearDraftRoute,
     searchPlaces: searchPlaces,
     showSearchMarker: showSearchMarker,
-    clearSearchMarker: clearSearchMarker
+    clearSearchMarker: clearSearchMarker,
+    setZoneClickHandler: setZoneClickHandler,
+    clearZoneClickHandler: clearZoneClickHandler,
+    setZoneEditable: setZoneEditable,
+    getZonePath: getZonePath,
+    setZoneColor: setZoneColor
   };
 })(window);
