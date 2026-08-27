@@ -1,5 +1,5 @@
 {
-  "name": "SK 항법지도 2.0",
+  "name": "SK 항법지도",
   "short_name": "SK항법지도",
   "description": "SK 헬기 조종사를 위한 모바일 항법 경로 계획 지도",
   "start_url": "./index.html",
