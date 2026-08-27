@@ -258,13 +258,16 @@
   }
 
   // 구역(선/면) 편집 모드 on/off — google.maps.Polygon/Polyline의 내장 editable 핸들(점 드래그,
-  // 변 중간점 드래그로 삽입, Alt+클릭/우클릭으로 삭제)을 그대로 사용한다
+  // 변 중간점 드래그로 삽입, Alt+클릭/우클릭으로 삭제) + draggable(구역 안쪽을 잡고 전체 이동)을 함께 켠다.
+  // 둘 다 같은 MVCArray path를 갱신하므로 getZonePath()의 getPath() 로직을 그대로 재사용할 수 있다.
   function findZoneObj(type, id) {
     return (markers[type] || []).find(function (m) { return m.get('zoneId') === id; });
   }
   function setZoneEditable(type, id, editable) {
     var obj = findZoneObj(type, id);
-    if (obj && obj.setEditable) obj.setEditable(editable);
+    if (!obj || !obj.setEditable) return;
+    obj.setEditable(editable);
+    if (obj.setDraggable) obj.setDraggable(editable);
   }
   // 편집 중인 Polygon/Polyline의 현재 좌표를 읽어온다(점 추가/삭제로 개수가 달라져도 그대로 반영)
   function getZonePath(type, id) {
