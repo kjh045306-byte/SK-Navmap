@@ -191383,11 +191383,17 @@
       "id": "rp_72c6aa01"
     }
   ],
+  "airports": [],
   "layerStyles": {
     "sk_landings": {
       "label": "SK착륙장",
       "shape": "square-h",
       "color": "#E8001C"
+    },
+    "airports": {
+      "label": "공항, 비행장",
+      "shape": "square-h",
+      "color": "#378ADD"
     },
     "offsite_landings": {
       "label": "장외이착륙장",

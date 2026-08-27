@@ -9,12 +9,12 @@
   var LS_CLOUD_SEEN = 'skn_cloud_seen'; // 직전 동기화 시점에 클라우드에 존재했던 사용자추가 항목 id 목록(타입별) — 다른 기기의 삭제를 구분하기 위한 용도
   var CLOUD_ROOT = 'userData'; // Firebase Realtime Database 경로 루트
 
-  // 사용자가 추가/수정/삭제할 수 있는 타입(오버레이 대상) — 착륙장 4종 + WayPoint + 경로
-  var TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'waypoints', 'routes'];
+  // 사용자가 추가/수정/삭제할 수 있는 타입(오버레이 대상) — 착륙장 5종(공항·비행장 포함) + WayPoint + 경로
+  var TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'waypoints', 'routes'];
   // 참고용(읽기전용) 레이어 — base 데이터 그대로 표시, 사용자 추가/수정 없음
   var REFERENCE_TYPES = ['cp', 'ctrz', 'gwanjegwon', 'restricted', 'reportPoints'];
   // 경로 작성 시 드롭다운 대상이 되는 "장소"(사용자 추가/편집 가능) 타입
-  var POINT_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'waypoints'];
+  var POINT_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'waypoints'];
   // 이름 매칭/스냅(근처지점 자동 스냅, depName·arrName 산출)의 대상 — CP/ReportPoint도 마커클릭으로 경로에 쓰일 수 있으므로 포함
   var NAME_MATCH_TYPES = POINT_TYPES.concat(['cp', 'reportPoints']);
 
@@ -207,10 +207,10 @@
     return !!f[routeName];
   }
 
-  // 레이어 표시 상태 (10개 레이어 + 전체 항법경로)
+  // 레이어 표시 상태 (11개 레이어 + 전체 항법경로)
   var DEFAULT_LAYERS = {
     sk_landings: true, offsite_landings: true, hospital_landings: false, ultralight_landings: false,
-    cp: false, waypoints: false, ctrz: false, reportPoints: false, gwanjegwon: false, restricted: false,
+    airports: true, cp: false, waypoints: false, ctrz: false, reportPoints: false, gwanjegwon: false, restricted: false,
     routesAll: false
   };
   function getLayerState() {

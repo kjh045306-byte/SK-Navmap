@@ -12,9 +12,10 @@
   var editingRouteId = null; // 항법경로 수정 중일 때 대상 id
   var selectedRouteId = null; // 현재 지도에 표시 중인(선택된) 저장 경로 id
   var displayedRoute = null; // 위와 동일한 경로의 전체 객체 — "이 경로 Log 인쇄" 버튼이 참조
-  // marker "kind"는 Data 타입 키(sk_landings/offsite_landings/hospital_landings/ultralight_landings/waypoints)와 그대로 동일하게 사용한다
-  var LAYER_ORDER = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'cp', 'waypoints', 'ctrz', 'reportPoints', 'gwanjegwon', 'restricted'];
-  var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings'];
+  // marker "kind"는 Data 타입 키(sk_landings/offsite_landings/hospital_landings/ultralight_landings/airports/waypoints)와 그대로 동일하게 사용한다
+  var LAYER_ORDER = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'cp', 'waypoints', 'ctrz', 'reportPoints', 'gwanjegwon', 'restricted'];
+  var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports'];
+  var landingPicker = null; // 착륙장 추가/수정 폼의 아이콘/색상 선택 컴포넌트 (init에서 mountPicker로 생성)
   var currentSearchResult = null; // 장소 검색 결과 중 선택된 항목 { name, address, lat, lng }
   var routeComposeActive = false; // 항법경로 작성 폼이 열려 있는 동안(경유점 탭 선택 중 포함) true
   var selectedDepPoint = null; // 현재 선택된 출발지 { name, lat, lng } — 드롭다운/지도탭 공통 소스
@@ -871,6 +872,7 @@
       $id('al-lat').value = point.lat;
       $id('al-lng').value = point.lng;
       $id('al-memo').value = point.memo || '';
+      landingPicker.setValue(Icons.iconOf(kind, point), Icons.colorOf(kind, point));
       $id('add-landing-sheet').querySelector('.sheet-title').textContent = '착륙장 수정';
       openSheet('add-landing-sheet');
     }
@@ -1038,7 +1040,7 @@
     list.forEach(function (r) { wrap.appendChild(buildRouteCard(r)); });
   }
 
-  /* ── 레이어 시트 (10개 레이어 + 전체 항법경로 — layerStyles(JSON)에서 라벨/색상을 그대로 읽어 생성) ── */
+  /* ── 레이어 시트 (11개 레이어 + 전체 항법경로 — layerStyles(JSON)에서 라벨/색상을 그대로 읽어 생성) ── */
   function buildLayerRow(key, label, color) {
     var row = el('div', 'layer-row');
     var labelDiv = el('div', 'layer-row-label');
@@ -1080,7 +1082,7 @@
   /* ── 착륙장/WP/경로 추가 폼 ── */
   function populatePointSelects() {
     var points = Data.DB.sk_landings.concat(Data.DB.offsite_landings).concat(Data.DB.hospital_landings)
-      .concat(Data.DB.ultralight_landings).concat(Data.DB.waypoints).slice().sort(function (a, b) {
+      .concat(Data.DB.ultralight_landings).concat(Data.DB.airports).concat(Data.DB.waypoints).slice().sort(function (a, b) {
         return a.name.localeCompare(b.name, 'ko');
       });
     [$id('ar-dep-select'), $id('ar-arr-select')].forEach(function (sel) {
@@ -1116,6 +1118,7 @@
     $id('al-lng').value = '';
     $id('al-memo').value = '';
     $id('al-kind').value = 'offsite_landings';
+    landingPicker.setValue(Icons.defaultIcon('offsite_landings'), Icons.defaultColor('offsite_landings'));
     editingPoint = null;
     $id('add-landing-sheet').querySelector('.sheet-title').textContent = '착륙장 추가';
   }
@@ -1160,7 +1163,8 @@
     var lng = parseFloat($id('al-lng').value);
     if (!name || isNaN(lat) || isNaN(lng)) { toast('이름과 좌표를 입력하세요'); return; }
     if (lat < 30 || lat > 43 || lng < 122 || lng > 133) { toast('좌표 범위를 확인하세요 (한국 인근)'); return; }
-    var fields = { name: name, lat: lat, lng: lng, memo: $id('al-memo').value.trim() };
+    var picked = landingPicker.getValue();
+    var fields = { name: name, lat: lat, lng: lng, memo: $id('al-memo').value.trim(), icon: picked.icon, color: picked.color };
     var wasEditing = !!editingPoint;
     if (editingPoint) {
       if (editingPoint.type === kind) {
@@ -1478,6 +1482,8 @@
     // 레이어 시트 (change 리스너는 각 행 생성 시 buildLayerRow 안에서 연결됨)
     renderLayerRows();
     populateLandingKindSelect();
+    landingPicker = Icons.mountPicker($id('al-icon-grid'), $id('al-color-row'),
+      Icons.defaultIcon('offsite_landings'), Icons.defaultColor('offsite_landings'));
     $id('maptype-select').addEventListener('change', function () {
       MapView.setMapType(this.value);
       localStorage.setItem('skn_maptype', this.value);

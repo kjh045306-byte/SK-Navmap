@@ -307,6 +307,14 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .form-textarea{resize:none;min-height:56px}
 .form-row-2{display:flex;gap:10px}
 .form-row-2 .form-group{flex:1}
+.icon-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.icon-grid-btn{aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:6px;cursor:pointer}
+.icon-grid-btn svg{width:60%;height:60%}
+.icon-grid-btn.selected{border-color:var(--sk-orange);box-shadow:0 0 0 1px var(--sk-orange)}
+.color-swatch-row{display:flex;gap:12px;flex-wrap:wrap}
+.color-swatch{width:34px;height:34px;border-radius:50%;border:none;padding:0;cursor:pointer}
+.color-swatch.selected{box-shadow:0 0 0 2px var(--panel),0 0 0 4px #ffffff}
 .form-pick-row{display:flex;gap:8px}
 .form-pick-row .form-input{flex:1}
 .btn-pick{background:rgba(0,200,255,0.12);border:1px solid rgba(0,200,255,0.3);border-radius:10px;

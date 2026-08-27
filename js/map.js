@@ -4,10 +4,10 @@
 
   var map = null;
   // 사용자가 추가/편집 가능한 "장소" 레이어 (marker-sheet 클릭 인터랙션 있음)
-  var POINT_LAYER_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'waypoints'];
+  var POINT_LAYER_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'waypoints'];
   // 참고용(읽기전용) geomType 기반 레이어 (Point/LineString/Polygon 혼재, 클릭 인터랙션 없음)
   var REFERENCE_GEOM_TYPES = ['ctrz', 'gwanjegwon', 'restricted', 'reportPoints'];
-  var markers = { sk_landings: [], offsite_landings: [], hospital_landings: [], ultralight_landings: [], waypoints: [], cp: [], ctrz: [], gwanjegwon: [], restricted: [], reportPoints: [] };
+  var markers = { sk_landings: [], offsite_landings: [], hospital_landings: [], ultralight_landings: [], airports: [], waypoints: [], cp: [], ctrz: [], gwanjegwon: [], restricted: [], reportPoints: [] };
   var allRouteLines = []; // 전체 경로(초록, 얇음) — 레이어 ON시만 지도에 부착
   var selectedPolyline = null; // 저장된 경로 선택 시(오렌지) — 레이어 설정과 무관하게 항상 표시
   var draftPolyline = null; // 작성 중인(미저장) 경로 미리보기(노랑) — 레이어 설정과 무관하게 항상 표시
@@ -204,30 +204,6 @@
     };
   }
 
-  function squareHIcon(color) {
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30">' +
-      '<rect x="2" y="2" width="26" height="26" rx="6" fill="' + color + '" stroke="#ffffff" stroke-width="2.5"/>' +
-      '<text x="15" y="21" font-size="15" font-weight="900" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif">H</text>' +
-      '</svg>';
-    return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(30, 30), anchor: new google.maps.Point(15, 15) };
-  }
-
-  function crossIcon(color) {
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28">' +
-      '<path d="M11 3 H17 V11 H25 V17 H17 V25 H11 V17 H3 V11 H11 Z" fill="' + color + '" stroke="#333333" stroke-width="1.5" stroke-linejoin="round"/>' +
-      '</svg>';
-    return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(28, 28), anchor: new google.maps.Point(14, 14) };
-  }
-
-  // style: layerStyles[type] ({shape,color,label}) — shape에 따라 알맞은 아이콘을 만든다
-  function iconForStyle(style, size) {
-    var color = (style && style.color) || '#ffffff';
-    var shape = style && style.shape;
-    if (shape === 'circle') return circleIcon(color, size || 16);
-    if (shape === 'cross') return crossIcon(color);
-    return squareHIcon(color); // 'square-h' 기본값
-  }
-
   // geomType(Point/LineString/Polygon 또는 없으면 Point로 간주)에 따라 마커/폴리라인/폴리곤으로 렌더링 (참고 레이어 공용)
   // onPointClick이 주어지면(ReportPoint 등) Point 마커에 클릭 리스너를 붙인다 — 나머지 참고 레이어는 그대로 비인터랙티브
   function renderGeomItems(items, color, visible, onPointClick) {
@@ -363,14 +339,15 @@
     var styles = Data.LAYER_STYLES || {};
 
     // 사용자 추가/편집 가능한 "장소" 레이어 — 클릭 시 marker-sheet(또는 경로작성 중이면 routePointClickHandler)
+    // 아이콘/색상은 항목별 icon/color 필드(없으면 타입별 기본값)를 그대로 사용한다
     POINT_LAYER_TYPES.forEach(function (type) {
       clearMarkerGroup(type);
-      var icon = iconForStyle(styles[type], type === 'waypoints' ? 16 : 30);
+      var size = type === 'waypoints' ? 16 : 30;
       Data.DB[type].forEach(function (p) {
         var mk = new google.maps.Marker({
           position: { lat: p.lat, lng: p.lng },
           map: layers[type] ? map : null,
-          icon: icon,
+          icon: Icons.markerIcon(Icons.iconOf(type, p), Icons.colorOf(type, p), size),
           title: p.name,
           zIndex: type === 'waypoints' ? 1 : undefined
         });
@@ -384,7 +361,7 @@
 
     // CP — WayPoint와 동일하게 클릭 시 정보시트 표시
     clearMarkerGroup('cp');
-    var cpIcon = iconForStyle(styles.cp, 14);
+    var cpIcon = circleIcon((styles.cp && styles.cp.color) || '#ffffff', 14);
     markers.cp = Data.DB.cp.map(function (p) {
       var mk = new google.maps.Marker({
         position: { lat: p.lat, lng: p.lng },
