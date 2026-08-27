@@ -463,7 +463,8 @@
         strokeWeight: 1.5,
         strokeOpacity: 0.6,
         map: map,
-        zIndex: 1
+        zIndex: 1,
+        clickable: false // 비인터랙티브 참고 표시용 — 지도탭 인터랙션(경로작성/구역그리기/거리측정)을 가로채지 않도록
       });
       allRouteLines.push(line);
     });
@@ -493,7 +494,8 @@
       strokeWeight: 5,
       strokeOpacity: 0.95,
       map: map,
-      zIndex: 10
+      zIndex: 10,
+      clickable: false // 비인터랙티브 표시용 — 지도탭 인터랙션을 가로채지 않도록
     });
     var bounds = new google.maps.LatLngBounds();
     route.coords.forEach(function (c) { bounds.extend(c); });
@@ -546,7 +548,9 @@
         repeat: '14px'
       }],
       map: map,
-      zIndex: 15
+      zIndex: 15,
+      clickable: false // 기본값(true)이면 선의 클릭 판정 영역이 지도 click 이벤트를 가로채
+                        // 다음 점 탭이 씹히므로(경로작성/구역그리기/거리측정 공통 버그) 항상 뚫어준다
     });
   }
 
@@ -559,7 +563,9 @@
     clearMeasurePoints();
     var icon = circleIcon('#FFD700', 14);
     measurePointMarkers = points.map(function (p) {
-      return new google.maps.Marker({ position: { lat: p.lat, lng: p.lng }, map: map, icon: icon, zIndex: 16 });
+      // clickable:false — 클릭 리스너가 없는 순수 표시용 마커라, 기본값(true)이면 근처 탭이
+      // 마커에 가로채여 다음 점 확정이 씹힐 수 있으므로 지도로 항상 뚫어준다
+      return new google.maps.Marker({ position: { lat: p.lat, lng: p.lng }, map: map, icon: icon, zIndex: 16, clickable: false });
     });
   }
   function clearMeasurePoints() {
@@ -584,7 +590,8 @@
           repeat: '10px'
         }],
         map: map,
-        zIndex: 16
+        zIndex: 16,
+        clickable: false // 커서를 따라다니는 선이라 다음 클릭이 이 선 위에서 나기 쉬움 — 반드시 뚫어줘야 함
       });
     }
   }

@@ -34,7 +34,6 @@
   // 거리측정(일회성 도구 — 저장 안 함)
   var measureActive = false;
   var measurePoints = [];
-  var measureUnit = 'NM'; // 'NM' | 'm'
   var currentSearchResult = null; // 장소 검색 결과 중 선택된 항목 { name, address, lat, lng }
   var routeComposeActive = false; // 항법경로 작성 폼이 열려 있는 동안(경유점 탭 선택 중 포함) true
   var selectedDepPoint = null; // 현재 선택된 출발지 { name, lat, lng } — 드롭다운/지도탭 공통 소스
@@ -403,7 +402,7 @@
   }
 
   function formatMeasureDistance(nm) {
-    return measureUnit === 'NM' ? nm.toFixed(2) + ' NM' : Math.round(nm * 1852) + ' m';
+    return nm.toFixed(1) + ' NM (' + (nm * 1.852).toFixed(1) + ' km)';
   }
 
   function updateMeasureDistance() {
@@ -432,8 +431,6 @@
   function startMeasure() {
     measureActive = true;
     measurePoints = [];
-    measureUnit = 'NM';
-    $id('measure-unit-btn').textContent = measureUnit;
     MapView.clearMeasurePoints();
     updateMeasureDistance();
     showMeasureBar();
@@ -442,12 +439,6 @@
     MapView.setRoutePointClickHandler(function (point) { measureTapHandler({ lat: point.lat, lng: point.lng }); });
     MapView.setMouseMoveHandler(measureMouseMoveHandler);
     toast('지도를 탭해 거리를 측정할 지점을 찍으세요');
-  }
-
-  function toggleMeasureUnit() {
-    measureUnit = measureUnit === 'NM' ? 'm' : 'NM';
-    $id('measure-unit-btn').textContent = measureUnit;
-    updateMeasureDistance();
   }
 
   function undoMeasurePoint() {
@@ -1727,7 +1718,6 @@
     $id('layer-btn').addEventListener('click', function () { syncLayerSheetUI(); openSheet('layer-sheet'); });
     $id('sync-btn').addEventListener('click', function () { runCloudSync(false); });
     $id('measure-btn').addEventListener('click', startMeasure);
-    $id('measure-unit-btn').addEventListener('click', toggleMeasureUnit);
     $id('measure-undo-btn').addEventListener('click', undoMeasurePoint);
     $id('measure-done-btn').addEventListener('click', endMeasure);
     $id('route-select-btn').addEventListener('click', function () {
