@@ -1,5 +1,5 @@
 /* SK 항법지도 2.0 — 서비스워커 (오프라인 캐싱) */
-var CACHE_NAME = 'sk-navmap-c7f016b';
+var CACHE_NAME = 'sk-navmap-71eb4ce';
 var ASSET_URLS = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ var ASSET_URLS = [
   './js/ui.js',
   './js/app.js',
   './navmap_data.json',
+  './version.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
@@ -42,7 +43,7 @@ self.addEventListener('fetch', function (event) {
   if (url.origin !== self.location.origin) return; // 구글 맵스 등 외부 요청은 그대로 통과
 
   // 데이터 파일: 네트워크 우선(최신 데이터), 실패 시 캐시로 대체
-  if (url.pathname.endsWith('navmap_data.json')) {
+  if (url.pathname.endsWith('navmap_data.json') || url.pathname.endsWith('version.json')) {
     event.respondWith(
       fetch(req)
         .then(function (res) {

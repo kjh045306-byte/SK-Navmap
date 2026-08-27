@@ -1,0 +1,65 @@
+#!/bin/sh
+# 왜 post-commit인가(하나로 합치기까지의 사연):
+# - pre-commit 시점엔 이번 커밋 메시지가 아직 없다(-m 인자가 COMMIT_EDITMSG로 옮겨지기 전) —
+#   태그를 읽을 수 없음.
+# - commit-msg 시점엔 메시지는 읽을 수 있지만, 그 안에서 git add로 스테이징해도 이미 트리가
+#   확정된 뒤라 "이번" 커밋엔 반영되지 않는다(실제 커밋으로 직접 확인함 — version.json/sw.js가
+#   스테이징만 남고 커밋 안에는 옛날 값 그대로였음).
+# - 그래서 커밋이 만들어진 "후"(post-commit)에 그 커밋 메시지를 읽어 버전을 계산하고,
+#   version.json/sw.js를 갱신해서 --amend로 같은 커밋에 끼워 넣는다.
+#
+# 중복 처리 방지: --amend는 (a) 이 훅 스스로 아래에서 호출하는 경우와 (b) 사람이 나중에
+# 그 커밋을 손으로 다시 --amend하는 경우 둘 다에서 post-commit을 다시 실행시킨다. 단순
+# 잠금파일(생성 후 즉시 삭제)로는 (b)를 막지 못해(잠금이 이미 소비된 뒤라 다음 실행이
+# "새 커밋"과 구분이 안 됨) 실제로 버전이 중복 상승하는 걸 확인했다. 그래서 "이 커밋의
+# 부모 해시"를 처리 완료 표식으로 남긴다 — amend는 부모가 절대 안 바뀌므로, 같은 부모를
+# 다시 보면(훅 자신의 재귀든, 사람의 재-amend든) 무조건 건너뛴다. 새 커밋은 부모가 항상
+# 달라지므로 정상적으로 한 번만 처리된다.
+MARKER="$(git rev-parse --git-dir)/version-hook-parent"
+PARENT=$(git rev-parse --short HEAD^ 2>/dev/null || echo "root")
+if [ -f "$MARKER" ] && [ "$(cat "$MARKER")" = "$PARENT" ]; then
+  exit 0
+fi
+
+# 1) 커밋 메시지 첫 줄의 [대규모]/[중간]/[소규모] 태그로 version.json을 semver 규칙대로 갱신한다.
+#    태그가 없으면 안전하게 [소규모]로 간주하고 경고만 띄운다(커밋을 막지 않음).
+FIRST_LINE=$(git log -1 --format=%s)
+
+if echo "$FIRST_LINE" | grep -qF '[대규모]'; then
+  BUMP="major"
+elif echo "$FIRST_LINE" | grep -qF '[중간]'; then
+  BUMP="minor"
+elif echo "$FIRST_LINE" | grep -qF '[소규모]'; then
+  BUMP="patch"
+else
+  BUMP="patch"
+  echo "⚠️  커밋 메시지 첫 줄에 [대규모]/[중간]/[소규모] 태그가 없어 [소규모]로 처리합니다. 다음엔 태그를 붙여주세요." >&2
+fi
+
+MAJOR=$(sed -n 's/.*"major": *\([0-9]*\).*/\1/p' version.json)
+MINOR=$(sed -n 's/.*"minor": *\([0-9]*\).*/\1/p' version.json)
+PATCH=$(sed -n 's/.*"patch": *\([0-9]*\).*/\1/p' version.json)
+
+case "$BUMP" in
+  major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+  minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+  patch) PATCH=$((PATCH + 1)) ;;
+esac
+
+cat > version.json <<EOF
+{
+  "version": "$MAJOR.$MINOR.$PATCH",
+  "major": $MAJOR,
+  "minor": $MINOR,
+  "patch": $PATCH
+}
+EOF
+
+# 2) sw.js 캐시버전 갱신 — version.json이 이제 매 커밋마다 바뀌므로(그 자체가 캐시를 새로
+#    인식시켜야 할 이유), 트리거 파일 목록 조건 없이 매번 커밋 자신의 해시로 갱신한다.
+HASH=$(git rev-parse --short HEAD)
+sed -i "s/var CACHE_NAME = '[^']*';/var CACHE_NAME = 'sk-navmap-$HASH';/" sw.js
+
+git add version.json sw.js
+echo "$PARENT" > "$MARKER"
+git commit --amend --no-edit --no-verify

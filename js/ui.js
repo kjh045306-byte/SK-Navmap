@@ -1711,8 +1711,22 @@
     });
   }
 
+  // 레이어 시트 하단의 버전 표시 + 브라우저 탭 제목 — version.json에서 읽어와 채운다(하드코딩 금지).
+  // 커밋 훅이 매 커밋마다 version.json을 갱신하므로 항상 최신 배포 버전을 반영한다.
+  function loadAppVersion() {
+    fetch('./version.json', { cache: 'no-store' })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (!data || !data.version) return;
+        $id('app-version').textContent = 'v' + data.version;
+        document.title = 'SK 항법지도 ' + data.version;
+      })
+      .catch(function () { /* 장식용 정보라 실패해도 조용히 무시 */ });
+  }
+
   /* ── 초기화: 이벤트 연결 ── */
   function init() {
+    loadAppVersion();
     // 상단바 / 하단바
     $id('search-btn').addEventListener('click', openSearchSheet);
     $id('layer-btn').addEventListener('click', function () { syncLayerSheetUI(); openSheet('layer-sheet'); });

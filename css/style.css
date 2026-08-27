@@ -336,6 +336,8 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .switch input:checked + .switch-track::before{transform:translateX(18px)}
 .select-row{display:flex;align-items:center;justify-content:space-between;padding:12px 4px}
 .select-row select{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:6px 10px}
+.layer-version-row{margin-top:10px;padding:10px 4px 4px;border-top:1px solid var(--border);
+  text-align:center;font-size:12px;color:var(--dim)}
 
 /* ══════════════════════════ 입력 폼 (착륙장/WP/경로 추가) ══════════════════════════ */
 .form-body{padding:0 18px 8px;overflow-y:auto}
