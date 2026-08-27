@@ -101,15 +101,29 @@
   <!-- 상단 바 -->
   <div class="top-bar">
     <div class="top-inner">
-      <div class="logo">🚁 <span class="sk">SK</span> <span class="nav">항법지도</span></div>
+      <div class="logo">
+        <span class="logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="2" y1="5" x2="22" y2="5"/>
+            <line x1="12" y1="5" x2="12" y2="8"/>
+            <rect x="6" y="8" width="11" height="7" rx="3.5"/>
+            <line x1="17" y1="12" x2="21" y2="15"/>
+            <line x1="21" y1="12.5" x2="21" y2="17"/>
+            <line x1="8" y1="15" x2="6.5" y2="19"/>
+            <line x1="14" y1="15" x2="14.5" y2="19"/>
+            <line x1="5.5" y1="19" x2="15.5" y2="19"/>
+          </svg>
+        </span>
+        <span class="nav">항법지도</span>
+      </div>
       <div class="top-spacer"></div>
       <div class="top-user" id="top-user" style="display:none">
         <span class="top-user-email" id="top-user-email">—</span>
-        <button class="top-btn" id="logout-btn">로그아웃</button>
+        <button class="top-btn" id="logout-btn" aria-label="로그아웃"><span class="btn-icon">🚪</span><span class="btn-label">로그아웃</span></button>
       </div>
-      <button class="top-btn" id="search-btn">🔍 검색</button>
-      <button class="top-btn" id="layer-btn">🗺️ 레이어</button>
-      <button class="top-btn" id="sync-btn" title="클라우드에서 최신 데이터 받아오기">🔄 동기화</button>
+      <button class="top-btn" id="search-btn" aria-label="검색"><span class="btn-icon">🔍</span><span class="btn-label">검색</span></button>
+      <button class="top-btn" id="layer-btn" aria-label="레이어"><span class="btn-icon">🗺️</span><span class="btn-label">레이어</span></button>
+      <button class="top-btn" id="sync-btn" aria-label="동기화" title="클라우드에서 최신 데이터 받아오기"><span class="btn-icon">🔄</span><span class="btn-label">동기화</span></button>
     </div>
   </div>
 
