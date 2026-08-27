@@ -17,12 +17,20 @@
   var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports'];
   var landingPicker = null; // 착륙장 추가/수정 폼의 아이콘/색상 선택 컴포넌트 (init에서 mountPicker로 생성)
   var awKind = 'waypoints'; // add-waypoint-sheet에서 현재 선택된 종류('waypoints'|'reportPoints')
-  // 구역(CTRZ/관제권/금지위험제한공역) — 이번 단계는 기존 항목 수정/삭제만 가능(신규 추가 UI 없음)
+  // 구역(CTRZ/관제권/금지위험제한공역) 편집(기존 항목 수정/삭제)
+  var ZONE_KINDS = ['ctrz', 'gwanjegwon', 'restricted'];
   var RESTRICTED_GROUPS = ['P AREA', 'D AREA', 'R AREA', 'NOTAM구역']; // restricted의 group 값은 이 4종으로 고정
   var editingZonePoint = null; // { type, id } — restricted의 Point 항목(단순 좌표편집 폼) 수정 중일 때
   var editingZoneShape = null; // { type, id } — LineString/Polygon 항목을 지도에서 직접(editable) 편집 중일 때
   var zpColorPicker = null; // 구역 지점(zone-point-sheet) 색상 선택 컴포넌트
   var zeColorPicker = null; // 구역 도형(zone-edit-bar) 색상 선택 컴포넌트
+  // 새 구역 그리기(신규 생성) — 자유그리기/원형/사각형
+  var drawZone = null; // { type, group } — 종류/그리기방식 선택 시트에서 확정
+  var drawMethod = null; // 'free' | 'circle' | 'rect' | null(그리기 중 아님)
+  var drawPoints = []; // free: 탭한 점 전부. circle: [중심점]. rect: [모서리1, 모서리2]
+  var drawFinalCoords = null; // 완료 버튼으로 확정된 최종 좌표 — 정보입력 폼에서 저장할 값
+  var drawFinalGeomType = null; // 'LineString' | 'Polygon'
+  var dziColorPicker = null; // 새 구역 정보입력 폼(draw-zone-info-sheet) 색상 선택 컴포넌트
   var currentSearchResult = null; // 장소 검색 결과 중 선택된 항목 { name, address, lat, lng }
   var routeComposeActive = false; // 항법경로 작성 폼이 열려 있는 동안(경유점 탭 선택 중 포함) true
   var selectedDepPoint = null; // 현재 선택된 출발지 { name, lat, lng } — 드롭다운/지도탭 공통 소스
@@ -1030,6 +1038,184 @@
     toast('구역이 수정되었습니다');
   }
 
+  /* ── 새 구역 그리기(신규 생성) — 자유그리기(탭해서 점 찍기, 기존 경로작성 인터랙션 재사용)/원형/사각형.
+     3가지 방식 모두 좌표가 확정되면(finishDraw) 공통 정보입력 폼(이름/분류/색상/메모)으로 넘어간다. ── */
+  function populateZoneKindSelect() {
+    var sel = $id('dz-kind');
+    var current = sel.value;
+    sel.innerHTML = '';
+    ZONE_KINDS.forEach(function (type) {
+      var style = Data.LAYER_STYLES[type] || {};
+      var opt = el('option', null, style.label || type);
+      opt.value = type;
+      sel.appendChild(opt);
+    });
+    sel.value = current || 'ctrz';
+  }
+
+  function syncDrawZoneKindUI() {
+    var isRestricted = $id('dz-kind').value === 'restricted';
+    $id('dz-group-field').style.display = isRestricted ? '' : 'none';
+    if (isRestricted) populateRestrictedGroupSelect($id('dz-group'), $id('dz-group').value);
+  }
+
+  function resetDrawZoneStartSheet() {
+    populateZoneKindSelect();
+    syncDrawZoneKindUI();
+  }
+
+  // 그리기 중엔 기존 마커/구역 클릭이 정보시트를 열지 않고 대신 그 좌표를 그리기 점으로 사용하게 리다이렉트한다
+  // (routePointClickHandler는 착륙장/WP/구역 마커 클릭에 이미 쓰이는 기존 훅을 그대로 재사용)
+  function beginZoneDrawInteraction() {
+    MapView.clearZoneClickHandler();
+    MapView.setMapClickHandler(drawTapHandler);
+    MapView.setRoutePointClickHandler(function (point) { drawTapHandler({ lat: point.lat, lng: point.lng }); });
+  }
+  function endZoneDrawInteraction() {
+    MapView.clearMapClickHandler();
+    MapView.clearRoutePointClickHandler();
+    MapView.setZoneClickHandler(onZoneClick);
+  }
+
+  function showZoneDrawBar() { $id('zone-draw-bar').classList.add('show'); }
+  function hideZoneDrawBar() { $id('zone-draw-bar').classList.remove('show'); }
+
+  function updateZoneDrawButtons() {
+    var isFree = drawMethod === 'free';
+    var isCircleOrRect = drawMethod === 'circle' || drawMethod === 'rect';
+    $id('zdb-line-btn').style.display = isFree ? '' : 'none';
+    $id('zdb-poly-btn').style.display = isFree ? '' : 'none';
+    $id('zdb-done-btn').style.display = isCircleOrRect ? '' : 'none';
+    if (isFree) {
+      $id('zdb-line-btn').disabled = drawPoints.length < 2;
+      $id('zdb-poly-btn').disabled = drawPoints.length < 3;
+    } else if (drawMethod === 'circle') {
+      var r = parseFloat($id('zdb-radius').value);
+      $id('zdb-done-btn').disabled = !(drawPoints.length >= 1 && r > 0);
+    } else if (drawMethod === 'rect') {
+      $id('zdb-done-btn').disabled = drawPoints.length < 2;
+    }
+  }
+
+  function rectCoords(a, b) {
+    return [
+      { lat: a.lat, lng: a.lng },
+      { lat: a.lat, lng: b.lng },
+      { lat: b.lat, lng: b.lng },
+      { lat: b.lat, lng: a.lng },
+      { lat: a.lat, lng: a.lng }
+    ];
+  }
+
+  function updateCirclePreview() {
+    var r = parseFloat($id('zdb-radius').value);
+    if (drawPoints.length < 1 || !(r > 0)) { MapView.clearDraftRoute(); return; }
+    MapView.previewDraftRoute(MapView.circlePolygonCoords(drawPoints[0], r));
+  }
+
+  // 방식별 지도 탭 처리 — 빈 지도 탭(mapClickHandler)과 기존 마커/구역 탭(routePointClickHandler 리다이렉트) 공용
+  function drawTapHandler(latlng) {
+    if (drawMethod === 'free') {
+      drawPoints.push(latlng);
+      $id('zdb-hint').textContent = '지도를 탭해 점을 추가하세요 (' + drawPoints.length + '개)';
+      MapView.previewDraftRoute(drawPoints);
+    } else if (drawMethod === 'circle') {
+      drawPoints = [latlng];
+      $id('zdb-radius-row').style.display = '';
+      $id('zdb-hint').textContent = '반경(NM)을 입력하세요';
+      updateCirclePreview();
+    } else if (drawMethod === 'rect') {
+      if (drawPoints.length === 0) {
+        drawPoints = [latlng];
+        $id('zdb-hint').textContent = '반대편(대각선) 모서리를 탭하세요';
+      } else {
+        drawPoints[1] = latlng;
+        $id('zdb-hint').textContent = '반대편 모서리를 다시 탭하면 위치를 바꿀 수 있어요';
+        MapView.previewDraftRoute(rectCoords(drawPoints[0], drawPoints[1]));
+      }
+    }
+    updateZoneDrawButtons();
+  }
+
+  function startDraw(method) {
+    drawMethod = method;
+    drawPoints = [];
+    $id('zdb-radius-row').style.display = 'none';
+    $id('zdb-radius').value = '';
+    $id('zdb-hint').textContent = method === 'free' ? '지도를 탭해 점을 추가하세요 (0개)' :
+      method === 'circle' ? '지도를 탭해 중심점을 선택하세요' : '첫 번째 모서리를 탭하세요';
+    updateZoneDrawButtons();
+    showZoneDrawBar();
+    beginZoneDrawInteraction();
+  }
+
+  function resetDrawState() {
+    drawMethod = null;
+    drawPoints = [];
+    endZoneDrawInteraction();
+    MapView.clearDraftRoute();
+    hideZoneDrawBar();
+  }
+
+  function finishDraw(coords, geomType) {
+    drawFinalCoords = coords;
+    drawFinalGeomType = geomType;
+    resetDrawState();
+    $id('dzi-name').value = '';
+    $id('dzi-memo').value = '';
+    var isRestricted = drawZone.type === 'restricted';
+    $id('dzi-group-row').style.display = isRestricted ? '' : 'none';
+    if (isRestricted) $id('dzi-group-val').textContent = drawZone.group || '(선택안함)';
+    dziColorPicker.setValue(Data.zoneColorOf(drawZone.type, {}));
+    openSheet('draw-zone-info-sheet');
+  }
+
+  function finishFreeDrawAsLine() {
+    if (drawPoints.length < 2) return;
+    finishDraw(drawPoints.slice(), 'LineString');
+  }
+  function finishFreeDrawAsPolygon() {
+    if (drawPoints.length < 3) return;
+    finishDraw(drawPoints.concat([{ lat: drawPoints[0].lat, lng: drawPoints[0].lng }]), 'Polygon');
+  }
+  function finishCircleDraw() {
+    var r = parseFloat($id('zdb-radius').value);
+    if (drawPoints.length < 1 || !(r > 0)) return;
+    finishDraw(MapView.circlePolygonCoords(drawPoints[0], r), 'Polygon');
+  }
+  function finishRectDraw() {
+    if (drawPoints.length < 2) return;
+    finishDraw(rectCoords(drawPoints[0], drawPoints[1]), 'Polygon');
+  }
+
+  function cancelDrawZoneInfo() {
+    closeSheet('draw-zone-info-sheet');
+    drawZone = null;
+    drawFinalCoords = null;
+    drawFinalGeomType = null;
+  }
+
+  function saveDrawZone() {
+    var name = $id('dzi-name').value.trim();
+    if (drawZone.type !== 'gwanjegwon' && !name) { toast('이름을 입력하세요'); return; }
+    var fields = {
+      name: name,
+      memo: $id('dzi-memo').value.trim(),
+      color: dziColorPicker.getValue(),
+      geomType: drawFinalGeomType,
+      coords: drawFinalCoords
+    };
+    if (drawZone.type === 'restricted') fields.group = drawZone.group;
+    Data.addUserPoint(drawZone.type, fields);
+    Data.refreshFromLocal();
+    MapView.renderMarkers(onMarkerClick);
+    closeSheet('draw-zone-info-sheet');
+    drawZone = null;
+    drawFinalCoords = null;
+    drawFinalGeomType = null;
+    toast('구역이 추가되었습니다');
+  }
+
   /* ── 경로 선택/표시 ── */
   function selectRouteAndShow(r) {
     MapView.selectRoute(r);
@@ -1557,6 +1743,45 @@
       if (editingZoneShape) MapView.setZoneColor(editingZoneShape.type, editingZoneShape.id, hex);
     });
     MapView.setZoneClickHandler(onZoneClick);
+
+    // 새 구역 그리기 (신규 생성)
+    $id('dz-kind').addEventListener('change', syncDrawZoneKindUI);
+    $id('dz-cancel-btn').addEventListener('click', function () { closeSheet('draw-zone-start-sheet'); });
+    $id('dz-method-free').addEventListener('click', function () {
+      drawZone = { type: $id('dz-kind').value, group: $id('dz-kind').value === 'restricted' ? $id('dz-group').value : null };
+      closeSheet('draw-zone-start-sheet');
+      startDraw('free');
+    });
+    $id('dz-method-circle').addEventListener('click', function () {
+      drawZone = { type: $id('dz-kind').value, group: $id('dz-kind').value === 'restricted' ? $id('dz-group').value : null };
+      closeSheet('draw-zone-start-sheet');
+      startDraw('circle');
+    });
+    $id('dz-method-rect').addEventListener('click', function () {
+      drawZone = { type: $id('dz-kind').value, group: $id('dz-kind').value === 'restricted' ? $id('dz-group').value : null };
+      closeSheet('draw-zone-start-sheet');
+      startDraw('rect');
+    });
+    $id('zdb-radius').addEventListener('input', function () { updateCirclePreview(); updateZoneDrawButtons(); });
+    $id('zdb-line-btn').addEventListener('click', finishFreeDrawAsLine);
+    $id('zdb-poly-btn').addEventListener('click', finishFreeDrawAsPolygon);
+    $id('zdb-done-btn').addEventListener('click', function () {
+      if (drawMethod === 'circle') finishCircleDraw();
+      else if (drawMethod === 'rect') finishRectDraw();
+    });
+    $id('zdb-cancel-btn').addEventListener('click', function () {
+      resetDrawState();
+      drawZone = null;
+      toast('그리기를 취소했습니다');
+    });
+    $id('dzi-cancel-btn').addEventListener('click', cancelDrawZoneInfo);
+    $id('dzi-save-btn').addEventListener('click', saveDrawZone);
+    dziColorPicker = Icons.mountColorPicker($id('dzi-color-row'), Icons.COLORS[0]);
+    $id('menu-draw-zone').addEventListener('click', function () {
+      closeSheet('add-menu');
+      resetDrawZoneStartSheet();
+      openSheet('draw-zone-start-sheet');
+    });
 
     // 추가 메뉴
     $id('menu-add-route').addEventListener('click', function () {

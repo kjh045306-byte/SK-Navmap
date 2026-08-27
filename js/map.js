@@ -188,7 +188,7 @@
       global.__onGoogleMapsLoaded = function () { resolve(); };
       var s = document.createElement('script');
       s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey) +
-        '&libraries=places&callback=__onGoogleMapsLoaded&language=ko';
+        '&libraries=places,geometry&callback=__onGoogleMapsLoaded&language=ko';
       s.async = true;
       s.onerror = function () { reject(new Error('Google Maps 스크립트 로드에 실패했습니다.')); };
       document.head.appendChild(s);
@@ -284,6 +284,22 @@
   }
   function setZoneClickHandler(fn) { zoneClickHandler = fn; }
   function clearZoneClickHandler() { zoneClickHandler = null; }
+
+  // 중심좌표+반경(NM)을 google.maps.geometry로 다각형 좌표(닫힌 링)로 변환 — 기존 ctrz base
+  // 데이터(73점)와 동일한 점 개수로 이산화하고, 첫 점을 그대로 복제해 끝점에 붙여 정확히 폐합한다.
+  function circlePolygonCoords(center, radiusNm, numPoints) {
+    numPoints = numPoints || 72;
+    var radiusM = radiusNm * 1852;
+    var centerLatLng = new google.maps.LatLng(center.lat, center.lng);
+    var pts = [];
+    for (var i = 0; i < numPoints; i++) {
+      var heading = (360 / numPoints) * i;
+      var p = google.maps.geometry.spherical.computeOffset(centerLatLng, radiusM, heading);
+      pts.push({ lat: p.lat(), lng: p.lng() });
+    }
+    pts.push({ lat: pts[0].lat, lng: pts[0].lng });
+    return pts;
+  }
 
   function searchMarkerIcon() {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26">' +
@@ -593,6 +609,7 @@
     clearZoneClickHandler: clearZoneClickHandler,
     setZoneEditable: setZoneEditable,
     getZonePath: getZonePath,
-    setZoneColor: setZoneColor
+    setZoneColor: setZoneColor,
+    circlePolygonCoords: circlePolygonCoords
   };
 })(window);

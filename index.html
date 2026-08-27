@@ -67,6 +67,22 @@
     <div class="zone-edit-hint">점을 드래그하거나 변 중간점을 드래그해 추가, Alt+클릭(우클릭)으로 점 삭제</div>
   </div>
 
+  <!-- 새 구역 그리기 진행 중 상단 바 — 자유그리기(탭해서 점 찍기)/원형(중심+반경)/사각형(대각선 두 점) 공용 -->
+  <div class="zone-edit-bar" id="zone-draw-bar">
+    <div class="zone-edit-hint" id="zdb-hint">지도를 탭해 점을 추가하세요 (0개)</div>
+    <div class="zone-edit-row" id="zdb-radius-row" style="display:none">
+      <input class="form-input" id="zdb-radius" type="number" inputmode="decimal" placeholder="반경(NM)">
+    </div>
+    <div class="zone-edit-row">
+      <div class="zone-edit-btns">
+        <button class="pick-hint-btn" id="zdb-line-btn" style="display:none">선으로 완료</button>
+        <button class="pick-hint-btn done" id="zdb-poly-btn" style="display:none">면으로 완료</button>
+        <button class="pick-hint-btn done" id="zdb-done-btn" style="display:none">완료</button>
+        <button class="pick-hint-btn" id="zdb-cancel-btn">취소</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 경유점 선택 중 목록 (지도 탭 모드에서도 순서/좌표 확인용) -->
   <div class="via-pick-panel" id="via-pick-panel" style="display:none">
     <div class="via-list" id="via-pick-list"></div>
@@ -326,6 +342,69 @@
   </div>
 </div>
 
+<!-- ── 새 구역 그리기: 종류/그리기 방식 선택 ── -->
+<div class="sheet" id="draw-zone-start-sheet">
+  <div class="sheet-overlay"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">새 구역 그리기</div>
+    <div class="form-body">
+      <div class="form-group">
+        <div class="form-label">종류</div>
+        <select class="form-select" id="dz-kind"></select>
+      </div>
+      <div class="form-group" id="dz-group-field" style="display:none">
+        <div class="form-label">분류</div>
+        <select class="form-select" id="dz-group"></select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">그리기 방식</div>
+        <div class="draw-method-row">
+          <button class="btn-secondary" id="dz-method-free">✏️ 자유롭게 그리기</button>
+          <button class="btn-secondary" id="dz-method-circle">⭕ 원형</button>
+          <button class="btn-secondary" id="dz-method-rect">▭ 사각형</button>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" id="dz-cancel-btn">취소</button>
+      </div>
+    </div>
+    <div class="sheet-bottom"></div>
+  </div>
+</div>
+
+<!-- ── 새 구역 그리기: 완료 후 이름/분류/색상/메모 입력 ── -->
+<div class="sheet" id="draw-zone-info-sheet">
+  <div class="sheet-overlay"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">새 구역 정보</div>
+    <div class="form-body">
+      <div class="form-group">
+        <div class="form-label">이름</div>
+        <input class="form-input" id="dzi-name" placeholder="예: 원주(RKNW)CTRZ">
+      </div>
+      <div class="form-group" id="dzi-group-row" style="display:none">
+        <div class="form-label">분류</div>
+        <div class="zone-info-val" id="dzi-group-val">—</div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">색상</div>
+        <div class="color-swatch-row" id="dzi-color-row"></div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">메모</div>
+        <textarea class="form-textarea" id="dzi-memo" placeholder="선택 입력"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" id="dzi-cancel-btn">취소</button>
+        <button class="btn-primary" id="dzi-save-btn">저장</button>
+      </div>
+    </div>
+    <div class="sheet-bottom"></div>
+  </div>
+</div>
+
 <!-- ── + 추가 메뉴 ── -->
 <div class="sheet" id="add-menu">
   <div class="sheet-overlay"></div>
@@ -354,6 +433,14 @@
         <div class="add-menu-text">
           <div class="add-menu-name">WayPoint 추가</div>
           <div class="add-menu-desc">항법 경유점 등록</div>
+        </div>
+        <div class="add-menu-arrow">›</div>
+      </div>
+      <div class="add-menu-item" id="menu-draw-zone">
+        <div class="add-menu-icon ami-purple">🗺️</div>
+        <div class="add-menu-text">
+          <div class="add-menu-name">새 구역 그리기</div>
+          <div class="add-menu-desc">CTRZ · 관제권 · 금지위험제한공역</div>
         </div>
         <div class="add-menu-arrow">›</div>
       </div>

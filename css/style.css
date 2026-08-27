@@ -115,6 +115,8 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .zone-edit-btns{display:flex;gap:8px;flex-shrink:0}
 .zone-edit-hint{font-size:11px;color:var(--dim)}
 .zone-info-val{font-size:13px;color:var(--text);white-space:pre-wrap}
+.draw-method-row{display:flex;flex-direction:column;gap:8px}
+.draw-method-row .btn-secondary{width:100%;text-align:left;padding:14px 16px;font-size:14px}
 
 /* 하단 액션바 */
 .bottom-bar{
@@ -292,6 +294,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .ami-green{background:rgba(0,200,100,0.12);border:1px solid rgba(0,200,100,0.25)}
 .ami-orange{background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.25)}
 .ami-blue{background:rgba(0,200,255,0.12);border:1px solid rgba(0,200,255,0.25)}
+.ami-purple{background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.25)}
 .add-menu-name{font-size:14px;font-weight:700;color:var(--text)}
 .add-menu-desc{font-size:11px;color:var(--dim);margin-top:2px}
 .add-menu-arrow{margin-left:auto;color:var(--dim);font-size:18px}
