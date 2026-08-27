@@ -19,8 +19,11 @@
   var viaDragHandler = null;
   var viaClickHandler = null;
   var mapClickHandler = null; // ui.js가 지도탭으로 좌표를 받을 때 설정
+  var mouseMoveHandler = null; // ui.js가 거리측정 중 고무줄(rubber-band) 라인 갱신을 위해 설정 — 터치 기기는 mousemove가 안 오므로 자연히 비활성
   var searchMarker = null; // 장소 검색 결과 임시 마커(보라)
   var routePointClickHandler = null; // 설정되어 있으면 sk/land/wp 마커 탭 시 정보시트 대신 이 콜백(point, kind)으로 전달
+  var measurePointMarkers = []; // 거리측정 중 확정된 점마다 찍는 노란 점 마커
+  var rubberBandLine = null; // 거리측정: 마지막 확정점 → 현재 커서까지 실시간으로 늘어나는 임시선
 
   // ── 지도 누르기 유지(long-press) 감지 ──
   // 지도 스크롤(팬) 제스처와 반드시 구분되어야 하므로, 누른 지점에서 화면 픽셀거리(LONG_PRESS_TOL_PX) 이상
@@ -388,6 +391,9 @@
     });
     map.addListener('mousedown', startLongPress);
     map.addListener('dragstart', cancelLongPress); // 팬(스크롤) 제스처가 인식되면 즉시 취소
+    map.addListener('mousemove', function (e) {
+      if (mouseMoveHandler && e.latLng) mouseMoveHandler({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+    });
 
     return map;
   }
@@ -548,6 +554,46 @@
     if (draftPolyline) { draftPolyline.setMap(null); draftPolyline = null; }
   }
 
+  // ── 거리측정 도구 — 확정된 점마다 노란 점 마커, 마지막 점→커서까지 고무줄(rubber-band) 임시선 ──
+  function setMeasurePoints(points) {
+    clearMeasurePoints();
+    var icon = circleIcon('#FFD700', 14);
+    measurePointMarkers = points.map(function (p) {
+      return new google.maps.Marker({ position: { lat: p.lat, lng: p.lng }, map: map, icon: icon, zIndex: 16 });
+    });
+  }
+  function clearMeasurePoints() {
+    measurePointMarkers.forEach(function (m) { m.setMap(null); });
+    measurePointMarkers = [];
+  }
+
+  // mousemove마다 호출되므로 매번 새로 만들지 않고 기존 폴리라인의 path만 갱신한다(터치 기기는
+  // mousemove가 안 와서 이 함수 자체가 호출되지 않으므로 자연히 고무줄 없이 탭-찍기만 동작)
+  function previewRubberBand(from, to) {
+    if (rubberBandLine) {
+      rubberBandLine.setPath([from, to]);
+    } else {
+      rubberBandLine = new google.maps.Polyline({
+        path: [from, to],
+        strokeColor: '#FFD700',
+        strokeWeight: 3,
+        strokeOpacity: 0.8,
+        icons: [{
+          icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 },
+          offset: '0',
+          repeat: '10px'
+        }],
+        map: map,
+        zIndex: 16
+      });
+    }
+  }
+  function clearRubberBand() {
+    if (rubberBandLine) { rubberBandLine.setMap(null); rubberBandLine = null; }
+  }
+  function setMouseMoveHandler(fn) { mouseMoveHandler = fn; }
+  function clearMouseMoveHandler() { mouseMoveHandler = null; }
+
   function panToPoint(lat, lng, zoom) {
     map.panTo({ lat: lat, lng: lng });
     if (zoom) map.setZoom(zoom);
@@ -610,6 +656,12 @@
     setZoneEditable: setZoneEditable,
     getZonePath: getZonePath,
     setZoneColor: setZoneColor,
-    circlePolygonCoords: circlePolygonCoords
+    circlePolygonCoords: circlePolygonCoords,
+    setMeasurePoints: setMeasurePoints,
+    clearMeasurePoints: clearMeasurePoints,
+    previewRubberBand: previewRubberBand,
+    clearRubberBand: clearRubberBand,
+    setMouseMoveHandler: setMouseMoveHandler,
+    clearMouseMoveHandler: clearMouseMoveHandler
   };
 })(window);

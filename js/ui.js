@@ -402,16 +402,31 @@
     $id('action-row-normal').style.display = '';
   }
 
+  function formatMeasureDistance(nm) {
+    return measureUnit === 'NM' ? nm.toFixed(2) + ' NM' : Math.round(nm * 1852) + ' m';
+  }
+
   function updateMeasureDistance() {
-    var nm = Calc.routeDistanceNM(measurePoints);
-    var text = measureUnit === 'NM' ? nm.toFixed(2) + ' NM' : Math.round(nm * 1852) + ' m';
-    $id('measure-dist-value').textContent = text;
+    $id('measure-dist-value').textContent = formatMeasureDistance(Calc.routeDistanceNM(measurePoints));
   }
 
   function measureTapHandler(latlng) {
     measurePoints.push(latlng);
+    MapView.setMeasurePoints(measurePoints);
     MapView.previewDraftRoute(measurePoints);
+    MapView.clearRubberBand(); // 확정된 구간은 draftRoute가 이어받고, 다음 고무줄은 새 마지막점에서 다음 mousemove에 다시 시작
     updateMeasureDistance();
+  }
+
+  // 첫 점을 찍은 뒤 마우스를 움직이면 마지막 확정점→커서까지 고무줄 선을 그리고,
+  // "확정 누적거리 + 커서까지 임시거리"를 합산해 총 거리에 즉시 반영한다(터치 기기는 mousemove가
+  // 오지 않으므로 이 핸들러 자체가 호출되지 않아 자연히 탭-찍기만 동작함)
+  function measureMouseMoveHandler(latlng) {
+    if (measurePoints.length === 0) return;
+    var last = measurePoints[measurePoints.length - 1];
+    MapView.previewRubberBand(last, latlng);
+    var total = Calc.routeDistanceNM(measurePoints) + Calc.haversineNM(last.lat, last.lng, latlng.lat, latlng.lng);
+    $id('measure-dist-value').textContent = formatMeasureDistance(total);
   }
 
   function startMeasure() {
@@ -419,11 +434,13 @@
     measurePoints = [];
     measureUnit = 'NM';
     $id('measure-unit-btn').textContent = measureUnit;
+    MapView.clearMeasurePoints();
     updateMeasureDistance();
     showMeasureBar();
     MapView.clearZoneClickHandler();
     MapView.setMapClickHandler(measureTapHandler);
     MapView.setRoutePointClickHandler(function (point) { measureTapHandler({ lat: point.lat, lng: point.lng }); });
+    MapView.setMouseMoveHandler(measureMouseMoveHandler);
     toast('지도를 탭해 거리를 측정할 지점을 찍으세요');
   }
 
@@ -436,7 +453,9 @@
   function undoMeasurePoint() {
     if (measurePoints.length === 0) return;
     measurePoints.pop();
+    MapView.setMeasurePoints(measurePoints);
     MapView.previewDraftRoute(measurePoints);
+    MapView.clearRubberBand();
     updateMeasureDistance();
   }
 
@@ -445,6 +464,9 @@
     measurePoints = [];
     MapView.clearMapClickHandler();
     MapView.clearRoutePointClickHandler();
+    MapView.clearMouseMoveHandler();
+    MapView.clearRubberBand();
+    MapView.clearMeasurePoints();
     MapView.setZoneClickHandler(onZoneClick);
     MapView.clearDraftRoute();
     hideMeasureBar();
