@@ -7,7 +7,9 @@
   // building-hospital은 더 이상 선택지에 없지만, 기존에 그 값으로 저장된 데이터가 있을 수 있어
   // 렌더링 함수(shapeInner/glyphInner)에서는 그대로 남겨 마이그레이션 없이도 계속 정상 표시된다.
   var ICON_PRESETS = ['ti-plane', 'ti-helipad', 'ti-hospital', 'ti-circle', 'ti-square', 'ti-diamond'];
-  var COLOR_PRESETS = ['#378ADD', '#1D9E75', '#D85A30', '#D4537E', '#BA7517', '#E24B4A'];
+  // 흰색/노랑/파랑/녹색/SK오렌지/빨강 — 색상은 항목마다 원본 hex 문자열 그대로 저장되므로
+  // (프리셋 인덱스가 아님) 이 배열을 바꿔도 기존에 다른 색으로 저장된 데이터는 영향받지 않는다
+  var COLOR_PRESETS = ['#FFFFFF', '#FFD400', '#378ADD', '#1D9E75', '#EE6C0F', '#E24B4A'];
 
   // 타입별 기본 아이콘/색상 — icon/color 필드가 없는(마이그레이션 전) base 항목의 폴백.
   // waypoints/reportPoints는 이전부터 지도에 서로 다른 색(파랑/하늘색)의 원으로 렌더링되던 값을
@@ -112,7 +114,8 @@
     COLOR_PRESETS.forEach(function (hex) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'color-swatch' + (hex === selected ? ' selected' : '');
+      var isWhite = hex.toUpperCase() === '#FFFFFF'; // 흰색은 어두운 배경에 묻히므로 옅은 테두리로 구분
+      btn.className = 'color-swatch' + (isWhite ? ' color-swatch-light' : '') + (hex === selected ? ' selected' : '');
       btn.style.background = hex;
       btn.addEventListener('click', function () { onSelect(hex); });
       container.appendChild(btn);
