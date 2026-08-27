@@ -357,7 +357,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .kind-toggle-btn{flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:10px;
   color:var(--text);font-size:13px;font-weight:600;padding:10px;cursor:pointer}
 .kind-toggle-btn.active{border-color:var(--sk-orange);color:#fff;background:rgba(255,107,0,0.12)}
-.icon-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.icon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .icon-grid-btn{aspect-ratio:1;display:flex;align-items:center;justify-content:center;
   background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:6px;cursor:pointer}
 .icon-grid-btn svg{width:60%;height:60%}

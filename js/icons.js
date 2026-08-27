@@ -3,8 +3,10 @@
   'use strict';
 
   // Tabler 아이콘 클래스명을 식별자로 그대로 저장 — 렌더링은 자체 SVG로 처리(오프라인 PWA라 외부 아이콘폰트 의존 없음)
-  var ICON_PRESETS = ['ti-plane', 'ti-map-pin', 'ti-flag', 'ti-building', 'ti-building-hospital',
-    'ti-circle', 'ti-square', 'ti-triangle', 'ti-diamond', 'ti-star'];
+  // 선택 가능한 프리셋은 6종(실사용 빈도 기준으로 축소). map-pin/flag/building/triangle/star/
+  // building-hospital은 더 이상 선택지에 없지만, 기존에 그 값으로 저장된 데이터가 있을 수 있어
+  // 렌더링 함수(shapeInner/glyphInner)에서는 그대로 남겨 마이그레이션 없이도 계속 정상 표시된다.
+  var ICON_PRESETS = ['ti-plane', 'ti-helipad', 'ti-hospital', 'ti-circle', 'ti-square', 'ti-diamond'];
   var COLOR_PRESETS = ['#378ADD', '#1D9E75', '#D85A30', '#D4537E', '#BA7517', '#E24B4A'];
 
   // 타입별 기본 아이콘/색상 — icon/color 필드가 없는(마이그레이션 전) base 항목의 폴백.
@@ -52,11 +54,20 @@
         '<rect x="9" y="12.5" width="2" height="2" fill="' + color + '"/>' +
         '<rect x="13" y="12.5" width="2" height="2" fill="' + color + '"/>';
     }
-    if (key === 'ti-building-hospital') {
+    if (key === 'ti-building-hospital') { // 더 이상 선택 불가 — 기존 저장 데이터 렌더링용으로만 유지
       return badge +
         '<rect x="7.5" y="7" width="9" height="11" fill="#ffffff"/>' +
         '<rect x="10.7" y="9" width="2.6" height="7" fill="' + color + '"/>' +
         '<rect x="9" y="11.7" width="6" height="2.6" fill="' + color + '"/>';
+    }
+    if (key === 'ti-helipad') { // 원 안에 "H" — 헬리패드
+      return badge +
+        '<text x="12" y="16.5" font-size="11" font-weight="900" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif">H</text>';
+    }
+    if (key === 'ti-hospital') { // 원 안에 십자가 — building-hospital의 단순화 버전
+      return badge +
+        '<rect x="10.5" y="6.5" width="3" height="11" rx="0.5" fill="#ffffff"/>' +
+        '<rect x="6.5" y="10.5" width="11" height="3" rx="0.5" fill="#ffffff"/>';
     }
     var path = GLYPH_PATHS[key];
     if (!path) return shapeInner('ti-circle', color);
