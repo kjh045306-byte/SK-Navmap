@@ -1450,7 +1450,12 @@
   }
 
   /* ── 레이어 시트 (11개 레이어 + 전체 항법경로 — layerStyles(JSON)에서 라벨/색상을 그대로 읽어 생성) ── */
-  function buildLayerRow(key, label, color) {
+  // 착륙장류 5종(레이어별 아이콘/색상 일괄변경 편집버튼을 붙일 대상)
+  var BULK_EDITABLE_TYPES = { sk_landings: 1, offsite_landings: 1, hospital_landings: 1, ultralight_landings: 1, airports: 1 };
+  var BULK_EDIT_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>';
+
+  function buildLayerRow(key, label, color, bulkEditable) {
     var row = el('div', 'layer-row');
     var labelDiv = el('div', 'layer-row-label');
     var dot = el('span', 'layer-dot');
@@ -1458,6 +1463,17 @@
     labelDiv.appendChild(dot);
     labelDiv.appendChild(document.createTextNode(label));
     row.appendChild(labelDiv);
+
+    var right = el('div', 'layer-row-right');
+    if (bulkEditable) {
+      var editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'layer-edit-btn';
+      editBtn.setAttribute('aria-label', label + ' 아이콘·색상 일괄변경');
+      editBtn.innerHTML = BULK_EDIT_ICON_SVG;
+      editBtn.addEventListener('click', function () { openBulkStyleSheet(key, label); });
+      right.appendChild(editBtn);
+    }
     var switchLabel = el('label', 'switch');
     var input = document.createElement('input');
     input.type = 'checkbox';
@@ -1465,7 +1481,8 @@
     input.addEventListener('change', function () { MapView.setLayerVisible(key, this.checked); });
     switchLabel.appendChild(input);
     switchLabel.appendChild(el('span', 'switch-track'));
-    row.appendChild(switchLabel);
+    right.appendChild(switchLabel);
+    row.appendChild(right);
     return row;
   }
 
@@ -1474,9 +1491,34 @@
     wrap.innerHTML = '';
     LAYER_ORDER.forEach(function (type) {
       var style = Data.LAYER_STYLES[type] || { label: type, color: '#ffffff' };
-      wrap.appendChild(buildLayerRow(type, style.label || type, style.color || '#ffffff'));
+      wrap.appendChild(buildLayerRow(type, style.label || type, style.color || '#ffffff', !!BULK_EDITABLE_TYPES[type]));
     });
-    wrap.appendChild(buildLayerRow('routesAll', '전체 항법경로', '#00cc66'));
+    wrap.appendChild(buildLayerRow('routesAll', '전체 항법경로', '#00cc66', false));
+  }
+
+  // ── 레이어별 아이콘/색상 일괄변경 ──
+  var bulkStylePicker = null;
+  var bulkStyleType = null;
+  var bulkStyleLabel = null;
+
+  function openBulkStyleSheet(type, label) {
+    bulkStyleType = type;
+    bulkStyleLabel = label;
+    closeSheet('layer-sheet');
+    $id('bulk-style-title').textContent = label + ' 일괄변경';
+    bulkStylePicker.setValue(Icons.defaultIcon(type), Icons.defaultColor(type));
+    openSheet('bulk-style-sheet');
+  }
+
+  function applyBulkStyle() {
+    var picked = bulkStylePicker.getValue();
+    var count = Data.DB[bulkStyleType].length;
+    if (!confirm(bulkStyleLabel + ' ' + count + '개 항목의 아이콘·색상이 모두 변경됩니다. 개별 설정도 덮어씌워집니다. 계속하시겠습니까?')) return;
+    Data.bulkSetTypeIconColor(bulkStyleType, picked.icon, picked.color);
+    Data.refreshFromLocal();
+    MapView.renderMarkers(onMarkerClick);
+    closeSheet('bulk-style-sheet');
+    toast(bulkStyleLabel + ' ' + count + '개 항목이 일괄 변경되었습니다');
   }
 
   function syncLayerSheetUI() {
@@ -2006,6 +2048,10 @@
     populateLandingKindSelect();
     landingPicker = Icons.mountPicker($id('al-icon-grid'), $id('al-color-row'),
       Icons.defaultIcon('offsite_landings'), Icons.defaultColor('offsite_landings'));
+    bulkStylePicker = Icons.mountPicker($id('bulk-icon-grid'), $id('bulk-color-row'),
+      Icons.PRESETS[0], Icons.COLORS[0]);
+    $id('bulk-style-cancel-btn').addEventListener('click', function () { closeSheet('bulk-style-sheet'); });
+    $id('bulk-style-apply-btn').addEventListener('click', applyBulkStyle);
     $id('maptype-select').addEventListener('change', function () {
       MapView.setMapType(this.value);
       localStorage.setItem('skn_maptype', this.value);

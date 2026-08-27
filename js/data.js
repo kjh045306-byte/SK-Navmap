@@ -194,6 +194,32 @@
     }
   }
 
+  // 레이어별 일괄 아이콘/색상 변경 — 해당 타입의 현재 화면에 보이는 모든 항목(base+사용자 추가,
+  // 개별 설정 여부 무관)에 icon/color를 강제 적용한다. Firebase는 항목 수만큼 개별 write하지
+  // 않고 한 번의 원자적 multi-path update로 반영한다(수백 건도 한 번에).
+  function bulkSetTypeIconColor(type, icon, color) {
+    var d = getUserData();
+    var meta = { addedBy: currentUserEmail(), updatedAt: Date.now() };
+    var fields = { icon: icon, color: color };
+    var pv = {};
+    DB[type].forEach(function (item) {
+      var id = item.id;
+      if (String(id).indexOf('u_') === 0) {
+        var idx = d[type].findIndex(function (x) { return x.id === id; });
+        if (idx >= 0) {
+          d[type][idx] = Object.assign({}, d[type][idx], fields, meta);
+          pv[CLOUD_ROOT + '/' + type + '/' + id] = d[type][idx];
+        }
+      } else {
+        d.edits[type][id] = Object.assign({}, d.edits[type][id], fields, meta);
+        pv[CLOUD_ROOT + '/edits/' + type + '/' + id] = d.edits[type][id];
+      }
+    });
+    saveUserData(d);
+    cloudWrite(pv);
+    return DB[type].length;
+  }
+
   // 즐겨찾기
   function getFavorites() {
     try { return JSON.parse(localStorage.getItem(LS_FAVS) || '{}'); } catch (e) { return {}; }
@@ -512,6 +538,7 @@
     nearestPoint: nearestPoint,
     nearestPointName: nearestPointName,
     reportPointGroups: reportPointGroups,
+    bulkSetTypeIconColor: bulkSetTypeIconColor,
     zoneColorOf: zoneColorOf,
     get orphanedOverlay() { return orphanedOverlay; }
   };
