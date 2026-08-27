@@ -7,14 +7,16 @@
     'ti-circle', 'ti-square', 'ti-triangle', 'ti-diamond', 'ti-star'];
   var COLOR_PRESETS = ['#378ADD', '#1D9E75', '#D85A30', '#D4537E', '#BA7517', '#E24B4A'];
 
-  // 타입별 기본 아이콘/색상 — icon/color 필드가 없는(마이그레이션 전) base 항목의 폴백
+  // 타입별 기본 아이콘/색상 — icon/color 필드가 없는(마이그레이션 전) base 항목의 폴백.
+  // waypoints/reportPoints는 이전부터 지도에 서로 다른 색(파랑/하늘색)의 원으로 렌더링되던 값을
+  // 그대로 프리셋화한 것 — 임의로 새로 정하지 않음(layerStyles.waypoints/.reportPoints.color 참고)
   var DEFAULT_ICON = {
     sk_landings: 'ti-flag', offsite_landings: 'ti-map-pin', hospital_landings: 'ti-building-hospital',
-    ultralight_landings: 'ti-triangle', waypoints: 'ti-circle', airports: 'ti-plane'
+    ultralight_landings: 'ti-triangle', waypoints: 'ti-circle', airports: 'ti-plane', reportPoints: 'ti-circle'
   };
   var DEFAULT_COLOR = {
     sk_landings: '#378ADD', offsite_landings: '#1D9E75', hospital_landings: '#E24B4A',
-    ultralight_landings: '#BA7517', waypoints: '#378ADD', airports: '#378ADD'
+    ultralight_landings: '#BA7517', waypoints: '#378ADD', airports: '#378ADD', reportPoints: '#7DD3FC'
   };
 
   function defaultIcon(type) { return DEFAULT_ICON[type] || 'ti-circle'; }

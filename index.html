@@ -342,11 +342,30 @@
   <div class="sheet-overlay"></div>
   <div class="sheet-panel">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">WayPoint 추가</div>
+    <div class="sheet-title" id="add-waypoint-title">WayPoint 추가</div>
     <div class="form-body">
+      <div class="form-group">
+        <div class="form-label">종류</div>
+        <div class="kind-toggle-row">
+          <button type="button" class="kind-toggle-btn active" id="aw-kind-waypoints" data-kind="waypoints">WayPoint</button>
+          <button type="button" class="kind-toggle-btn" id="aw-kind-reportPoints" data-kind="reportPoints">공항 Report Point</button>
+        </div>
+      </div>
+      <div class="form-group" id="aw-group-field" style="display:none">
+        <div class="form-label">소속 공항</div>
+        <select class="form-select" id="aw-group"></select>
+      </div>
       <div class="form-group">
         <div class="form-label">이름</div>
         <input class="form-input" id="aw-name" placeholder="예: 안성(ANSNG)">
+      </div>
+      <div class="form-group">
+        <div class="form-label">아이콘</div>
+        <div class="icon-grid" id="aw-icon-grid"></div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">색상</div>
+        <div class="color-swatch-row" id="aw-color-row"></div>
       </div>
       <div class="form-group">
         <div class="form-label">좌표</div>

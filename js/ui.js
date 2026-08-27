@@ -16,6 +16,8 @@
   var LAYER_ORDER = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'cp', 'waypoints', 'ctrz', 'reportPoints', 'gwanjegwon', 'restricted'];
   var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports'];
   var landingPicker = null; // 착륙장 추가/수정 폼의 아이콘/색상 선택 컴포넌트 (init에서 mountPicker로 생성)
+  var waypointPicker = null; // WayPoint/Report Point 추가 폼의 아이콘/색상 선택 컴포넌트
+  var awKind = 'waypoints'; // add-waypoint-sheet에서 현재 선택된 종류('waypoints'|'reportPoints')
   var currentSearchResult = null; // 장소 검색 결과 중 선택된 항목 { name, address, lat, lng }
   var routeComposeActive = false; // 항법경로 작성 폼이 열려 있는 동안(경유점 탭 선택 중 포함) true
   var selectedDepPoint = null; // 현재 선택된 출발지 { name, lat, lng } — 드롭다운/지도탭 공통 소스
@@ -799,7 +801,8 @@
   /* ── 마커 클릭 → 정보 시트 ── */
   function onMarkerClick(point, kind) {
     var typeLabel = (Data.LAYER_STYLES[kind] && Data.LAYER_STYLES[kind].label) || kind;
-    var isReference = kind === 'cp' || kind === 'reportPoints';
+    var isReadOnly = kind === 'cp'; // CP만 여전히 참고전용(사용자 추가/수정 불가) — Report Point는 이제 사용자 편집 가능
+    var nearMatch = kind === 'cp' || kind === 'reportPoints'; // 이름이 dep/arr로 직접 쓰이기보다 경로가 "경유"하는 지점인 경우가 많음
     $id('m-name').textContent = point.name;
     $id('m-type').textContent = typeLabel;
     var fms = Calc.toFMS(point.lat, point.lng);
@@ -809,7 +812,7 @@
     $id('m-dms-lat').textContent = dms.lat;
     $id('m-dms-lng').textContent = dms.lng;
 
-    var related = isReference
+    var related = nearMatch
       ? Data.ROUTES.filter(function (r) { return routePassesNear(r, point.lat, point.lng, SNAP_RADIUS_NM); })
       : Data.ROUTES.filter(function (r) { return r.depName === point.name || r.arrName === point.name; });
     var wrap = $id('related-routes');
@@ -819,8 +822,8 @@
     } else {
       related.forEach(function (r) {
         var isDep = r.depName === point.name;
-        var dir = isReference ? '경유' : (isDep ? '→' : '←');
-        var dest = isReference ? (r.depName + ' → ' + r.arrName) : (isDep ? r.arrName : r.depName);
+        var dir = nearMatch ? '경유' : (isDep ? '→' : '←');
+        var dest = nearMatch ? (r.depName + ' → ' + r.arrName) : (isDep ? r.arrName : r.depName);
         var chip = el('div', 'related-chip');
         chip.appendChild(el('div', 'related-dir', dir));
         chip.appendChild(el('div', 'related-dest', dest));
@@ -833,10 +836,10 @@
       });
     }
 
-    // CP/ReportPoint는 참고전용(사용자 추가/수정 불가)이므로 수정/삭제 버튼을 숨긴다
-    $id('marker-edit-btn').style.display = isReference ? 'none' : '';
-    $id('marker-delete-btn').style.display = isReference ? 'none' : '';
-    if (!isReference) {
+    // CP는 참고전용(사용자 추가/수정 불가)이므로 수정/삭제 버튼을 숨긴다
+    $id('marker-edit-btn').style.display = isReadOnly ? 'none' : '';
+    $id('marker-delete-btn').style.display = isReadOnly ? 'none' : '';
+    if (!isReadOnly) {
       $id('marker-edit-btn').onclick = function () {
         closeSheet('marker-sheet');
         openEditPoint(kind, point);
@@ -856,15 +859,19 @@
     openSheet('marker-sheet');
   }
 
-  // 착륙장/SK착륙장/WayPoint 수정 폼 열기 — 해당 마커는 폼이 열려 있는 동안 드래그로 좌표 조정 가능
+  // 착륙장/SK착륙장/WayPoint/Report Point 수정 폼 열기 — 해당 마커는 폼이 열려 있는 동안 드래그로 좌표 조정 가능
   function openEditPoint(kind, point) {
     editingPoint = { type: kind, id: point.id };
-    if (kind === 'waypoints') {
+    var isAw = kind === 'waypoints' || kind === 'reportPoints';
+    if (isAw) {
+      applyAwKindUI(kind);
       $id('aw-name').value = point.name;
       $id('aw-lat').value = point.lat;
       $id('aw-lng').value = point.lng;
       $id('aw-memo').value = point.memo || '';
-      $id('add-waypoint-sheet').querySelector('.sheet-title').textContent = 'WayPoint 수정';
+      if (kind === 'reportPoints') $id('aw-group').value = point.group || '';
+      waypointPicker.setValue(Icons.iconOf(kind, point), Icons.colorOf(kind, point));
+      $id('add-waypoint-title').textContent = (kind === 'reportPoints' ? '공항 Report Point' : 'WayPoint') + ' 수정';
       openSheet('add-waypoint-sheet');
     } else {
       $id('al-name').value = point.name;
@@ -877,8 +884,8 @@
       openSheet('add-landing-sheet');
     }
     MapView.setMarkerDraggable(kind, point.id, true, function (latlng) {
-      var latId = kind === 'waypoints' ? 'aw-lat' : 'al-lat';
-      var lngId = kind === 'waypoints' ? 'aw-lng' : 'al-lng';
+      var latId = isAw ? 'aw-lat' : 'al-lat';
+      var lngId = isAw ? 'aw-lng' : 'al-lng';
       $id(latId).value = latlng.lat.toFixed(6);
       $id(lngId).value = latlng.lng.toFixed(6);
     });
@@ -1111,6 +1118,35 @@
     if (current) sel.value = current;
   }
 
+  // WayPoint 추가 시트의 "소속 공항" 드롭다운을 기존 Report Point들의 group 코드로 채운다
+  function populateReportPointGroupSelect() {
+    var sel = $id('aw-group');
+    var current = sel.value;
+    sel.innerHTML = '<option value="">선택하세요</option>';
+    Data.reportPointGroups().forEach(function (code) {
+      var opt = el('option', null, code);
+      opt.value = code;
+      sel.appendChild(opt);
+    });
+    if (current) sel.value = current;
+  }
+
+  // 종류 토글 버튼/소속공항 필드 표시만 갱신 (아이콘/색상은 건드리지 않음 — openEditPoint의 기존값 채우기용)
+  function applyAwKindUI(kind) {
+    awKind = kind;
+    $id('aw-kind-waypoints').classList.toggle('active', kind === 'waypoints');
+    $id('aw-kind-reportPoints').classList.toggle('active', kind === 'reportPoints');
+    $id('aw-group-field').style.display = kind === 'reportPoints' ? '' : 'none';
+    if (kind === 'reportPoints') populateReportPointGroupSelect();
+  }
+
+  // 사용자가 종류 토글을 직접 클릭했을 때 — 아이콘/색상 강조를 그 종류의 기본값으로 자동 전환(제안)한다.
+  // 이후 사용자가 아이콘/색상을 직접 다시 고르면 그 선택이 우선되고, 다시 토글을 누르기 전까진 유지된다.
+  function onAwKindToggle(kind) {
+    applyAwKindUI(kind);
+    waypointPicker.setValue(Icons.defaultIcon(kind), Icons.defaultColor(kind));
+  }
+
   function resetLandingForm() {
     if (editingPoint) MapView.setMarkerDraggable(editingPoint.type, editingPoint.id, false);
     $id('al-name').value = '';
@@ -1128,8 +1164,10 @@
     $id('aw-lat').value = '';
     $id('aw-lng').value = '';
     $id('aw-memo').value = '';
+    $id('aw-group').value = '';
+    onAwKindToggle('waypoints');
     editingPoint = null;
-    $id('add-waypoint-sheet').querySelector('.sheet-title').textContent = 'WayPoint 추가';
+    $id('add-waypoint-title').textContent = 'WayPoint 추가';
   }
   function resetRouteForm() {
     $id('ar-name').value = '';
@@ -1191,18 +1229,28 @@
     var lng = parseFloat($id('aw-lng').value);
     if (!name || isNaN(lat) || isNaN(lng)) { toast('이름과 좌표를 입력하세요'); return; }
     if (lat < 30 || lat > 43 || lng < 122 || lng > 133) { toast('좌표 범위를 확인하세요 (한국 인근)'); return; }
-    var fields = { name: name, lat: lat, lng: lng, memo: $id('aw-memo').value.trim() };
+    var kind = awKind;
+    var picked = waypointPicker.getValue();
+    var fields = { name: name, lat: lat, lng: lng, memo: $id('aw-memo').value.trim(), icon: picked.icon, color: picked.color };
+    if (kind === 'reportPoints') fields.group = $id('aw-group').value;
     var wasEditing = !!editingPoint;
     if (editingPoint) {
-      Data.updateItem('waypoints', editingPoint.id, fields);
+      if (editingPoint.type === kind) {
+        Data.updateItem(kind, editingPoint.id, fields);
+      } else {
+        // 종류(WayPoint ↔ Report Point)가 바뀌면 기존 항목을 지우고 새 종류로 다시 추가한다
+        Data.deleteItemById(editingPoint.type, editingPoint.id);
+        Data.addUserPoint(kind, fields);
+      }
     } else {
-      Data.addUserPoint('waypoints', fields);
+      Data.addUserPoint(kind, fields);
     }
     Data.refreshFromLocal();
     MapView.renderMarkers(onMarkerClick);
     closeSheet('add-waypoint-sheet');
     resetWaypointForm();
-    toast(wasEditing ? 'WayPoint가 수정되었습니다' : 'WayPoint가 추가되었습니다');
+    var kindLabel = kind === 'reportPoints' ? 'Report Point' : 'WayPoint';
+    toast(wasEditing ? kindLabel + '가 수정되었습니다' : kindLabel + '가 추가되었습니다');
   }
 
   function saveNewRoute() {
@@ -1386,6 +1434,8 @@
     $id('al-cancel-btn').addEventListener('click', function () { closeSheet('add-landing-sheet'); resetLandingForm(); });
 
     // WayPoint 추가
+    $id('aw-kind-waypoints').addEventListener('click', function () { onAwKindToggle('waypoints'); });
+    $id('aw-kind-reportPoints').addEventListener('click', function () { onAwKindToggle('reportPoints'); });
     $id('aw-pick-btn').addEventListener('click', function () {
       pickLocation(function (latlng) {
         $id('aw-lat').value = latlng.lat.toFixed(6);
@@ -1484,6 +1534,8 @@
     populateLandingKindSelect();
     landingPicker = Icons.mountPicker($id('al-icon-grid'), $id('al-color-row'),
       Icons.defaultIcon('offsite_landings'), Icons.defaultColor('offsite_landings'));
+    waypointPicker = Icons.mountPicker($id('aw-icon-grid'), $id('aw-color-row'),
+      Icons.defaultIcon('waypoints'), Icons.defaultColor('waypoints'));
     $id('maptype-select').addEventListener('change', function () {
       MapView.setMapType(this.value);
       localStorage.setItem('skn_maptype', this.value);

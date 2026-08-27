@@ -4,9 +4,11 @@
 
   var map = null;
   // 사용자가 추가/편집 가능한 "장소" 레이어 (marker-sheet 클릭 인터랙션 있음)
-  var POINT_LAYER_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'waypoints'];
+  var POINT_LAYER_TYPES = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'waypoints', 'reportPoints'];
+  // 마커 크기(px) — 지정 없으면 착륙장류 기본값(30)
+  var POINT_MARKER_SIZE = { waypoints: 16, reportPoints: 12 };
   // 참고용(읽기전용) geomType 기반 레이어 (Point/LineString/Polygon 혼재, 클릭 인터랙션 없음)
-  var REFERENCE_GEOM_TYPES = ['ctrz', 'gwanjegwon', 'restricted', 'reportPoints'];
+  var REFERENCE_GEOM_TYPES = ['ctrz', 'gwanjegwon', 'restricted'];
   var markers = { sk_landings: [], offsite_landings: [], hospital_landings: [], ultralight_landings: [], airports: [], waypoints: [], cp: [], ctrz: [], gwanjegwon: [], restricted: [], reportPoints: [] };
   var allRouteLines = []; // 전체 경로(초록, 얇음) — 레이어 ON시만 지도에 부착
   var selectedPolyline = null; // 저장된 경로 선택 시(오렌지) — 레이어 설정과 무관하게 항상 표시
@@ -204,21 +206,18 @@
     };
   }
 
-  // geomType(Point/LineString/Polygon 또는 없으면 Point로 간주)에 따라 마커/폴리라인/폴리곤으로 렌더링 (참고 레이어 공용)
-  // onPointClick이 주어지면(ReportPoint 등) Point 마커에 클릭 리스너를 붙인다 — 나머지 참고 레이어는 그대로 비인터랙티브
-  function renderGeomItems(items, color, visible, onPointClick) {
+  // geomType(Point/LineString/Polygon 또는 없으면 Point로 간주)에 따라 마커/폴리라인/폴리곤으로 렌더링 (비인터랙티브 참고 레이어 전용)
+  function renderGeomItems(items, color, visible) {
     return (items || []).map(function (item) {
       var gt = item.geomType || 'Point';
       if (gt === 'Point') {
-        var mk = new google.maps.Marker({
+        return new google.maps.Marker({
           position: { lat: item.lat, lng: item.lng },
           map: visible ? map : null,
           icon: circleIcon(color, 12),
           title: item.name,
           zIndex: 2
         });
-        if (onPointClick) mk.addListener('click', function () { onPointClick(item); });
-        return mk;
       }
       if (gt === 'Polygon') {
         return new google.maps.Polygon({
@@ -342,14 +341,14 @@
     // 아이콘/색상은 항목별 icon/color 필드(없으면 타입별 기본값)를 그대로 사용한다
     POINT_LAYER_TYPES.forEach(function (type) {
       clearMarkerGroup(type);
-      var size = type === 'waypoints' ? 16 : 30;
+      var size = POINT_MARKER_SIZE[type] || 30;
       Data.DB[type].forEach(function (p) {
         var mk = new google.maps.Marker({
           position: { lat: p.lat, lng: p.lng },
           map: layers[type] ? map : null,
           icon: Icons.markerIcon(Icons.iconOf(type, p), Icons.colorOf(type, p), size),
           title: p.name,
-          zIndex: type === 'waypoints' ? 1 : undefined
+          zIndex: type === 'waypoints' ? 1 : (type === 'reportPoints' ? 2 : undefined)
         });
         mk.set('pointId', p.id);
         mk.addListener('click', function () {
@@ -376,15 +375,11 @@
       return mk;
     });
 
-    // 참고용 geomType 기반 레이어 (CTRZ/관제권/금지·위험·제한공역/Report Point)
-    // Report Point만 CP/WayPoint와 동일하게 클릭 가능 (CTRZ/관제권/제한공역은 계속 비인터랙티브)
+    // 참고용 geomType 기반 레이어 (CTRZ/관제권/금지·위험·제한공역) — 비인터랙티브
     REFERENCE_GEOM_TYPES.forEach(function (type) {
       clearMarkerGroup(type);
       var color = (styles[type] && styles[type].color) || '#ffffff';
-      var onPointClick = type === 'reportPoints' ? function (item) {
-        if (routePointClickHandler) routePointClickHandler(item, type); else onMarkerClick(item, type);
-      } : null;
-      markers[type] = renderGeomItems(Data.DB[type], color, layers[type], onPointClick);
+      markers[type] = renderGeomItems(Data.DB[type], color, layers[type]);
     });
 
     renderAllRouteLines(layers.routesAll);
