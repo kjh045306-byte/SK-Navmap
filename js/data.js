@@ -220,6 +220,48 @@
     return DB[type].length;
   }
 
+  // 공항 Report Point → 공항·비행장(airports) 단방향 종류 변경. reportPoints 쪽은 기존 삭제
+  // 로직(deletes 오버레이 또는 사용자 항목 제거)을 재사용하고, airports 쪽은 name/좌표/메모를
+  // 그대로 이관한 새 사용자 항목(u_ id)으로 생성한다. Firebase는 삭제+생성을 각각 write하지 않고
+  // bulkSetTypeIconColor와 같은 방식으로 한 번의 원자적 multi-path update로 반영한다.
+  function convertReportPointToAirport(id, icon, color) {
+    var srcItem = DB.reportPoints.find(function (x) { return x.id === id; });
+    if (!srcItem) return null;
+    var d = getUserData();
+    var now = Date.now();
+    var email = currentUserEmail();
+    var pv = {};
+
+    if (String(id).indexOf('u_') === 0) {
+      d.reportPoints = d.reportPoints.filter(function (x) { return x.id !== id; });
+      delete d.edits.reportPoints[id];
+      pv[CLOUD_ROOT + '/reportPoints/' + id] = null;
+    } else {
+      if (d.deletes.reportPoints.indexOf(id) === -1) d.deletes.reportPoints.push(id);
+      delete d.edits.reportPoints[id];
+      pv[CLOUD_ROOT + '/deletes/reportPoints/' + id] = { addedBy: email, updatedAt: now };
+      pv[CLOUD_ROOT + '/edits/reportPoints/' + id] = null;
+    }
+
+    var newItem = {
+      id: makeId(),
+      name: srcItem.name,
+      lat: srcItem.lat,
+      lng: srcItem.lng,
+      memo: srcItem.memo || '',
+      icon: icon,
+      color: color,
+      addedBy: email,
+      updatedAt: now
+    };
+    d.airports.push(newItem);
+    pv[CLOUD_ROOT + '/airports/' + newItem.id] = newItem;
+
+    saveUserData(d);
+    cloudWrite(pv);
+    return newItem;
+  }
+
   // 즐겨찾기
   function getFavorites() {
     try { return JSON.parse(localStorage.getItem(LS_FAVS) || '{}'); } catch (e) { return {}; }
@@ -539,6 +581,7 @@
     nearestPointName: nearestPointName,
     reportPointGroups: reportPointGroups,
     bulkSetTypeIconColor: bulkSetTypeIconColor,
+    convertReportPointToAirport: convertReportPointToAirport,
     zoneColorOf: zoneColorOf,
     get orphanedOverlay() { return orphanedOverlay; }
   };

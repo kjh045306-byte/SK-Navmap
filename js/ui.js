@@ -17,6 +17,8 @@
   var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports'];
   var landingPicker = null; // 착륙장 추가/수정 폼의 아이콘/색상 선택 컴포넌트 (init에서 mountPicker로 생성)
   var awKind = 'waypoints'; // add-waypoint-sheet에서 현재 선택된 종류('waypoints'|'reportPoints')
+  var rpConvertId = null; // Report Point → 공항·비행장 종류 변경 대상 id (rp-convert-sheet가 열려있는 동안)
+  var rpConvertPicker = null; // rp-convert-sheet의 아이콘/색상 선택 컴포넌트
   // 구역(CTRZ/관제권/금지위험제한공역) 편집(기존 항목 수정/삭제)
   var ZONE_KINDS = ['ctrz', 'gwanjegwon', 'restricted'];
   var RESTRICTED_GROUPS = ['P AREA', 'D AREA', 'R AREA', 'NOTAM구역']; // restricted의 group 값은 이 4종으로 고정
@@ -1618,6 +1620,8 @@
     $id('aw-kind-reportPoints').classList.toggle('active', kind === 'reportPoints');
     $id('aw-group-field').style.display = kind === 'reportPoints' ? '' : 'none';
     if (kind === 'reportPoints') populateReportPointGroupSelect();
+    // "공항·비행장으로 변경"은 기존 Report Point를 수정하는 중일 때만 의미가 있다(신규 작성/WayPoint 제외)
+    $id('aw-convert-airport-btn').style.display = (editingPoint && kind === 'reportPoints') ? '' : 'none';
   }
 
   function resetLandingForm() {
@@ -1993,6 +1997,32 @@
     });
     $id('aw-save-btn').addEventListener('click', saveNewWaypoint);
     $id('aw-cancel-btn').addEventListener('click', function () { closeSheet('add-waypoint-sheet'); resetWaypointForm(); });
+    // 공항 Report Point → 공항·비행장 종류 변경 (단방향, 기존 편집 폼 안의 버튼에서 진입)
+    $id('aw-convert-airport-btn').addEventListener('click', function () {
+      if (!editingPoint || editingPoint.type !== 'reportPoints') return;
+      if (!confirm('이 지점을 공항·비행장으로 변경합니다. 계속하시겠습니까?')) return;
+      rpConvertId = editingPoint.id;
+      closeSheet('add-waypoint-sheet');
+      resetWaypointForm();
+      rpConvertPicker.setValue(Icons.defaultIcon('airports'), Icons.defaultColor('airports'));
+      openSheet('rp-convert-sheet');
+    });
+    $id('rp2ap-cancel-btn').addEventListener('click', function () {
+      rpConvertId = null;
+      closeSheet('rp-convert-sheet');
+    });
+    $id('rp2ap-done-btn').addEventListener('click', function () {
+      if (!rpConvertId) return;
+      var picked = rpConvertPicker.getValue();
+      var newItem = Data.convertReportPointToAirport(rpConvertId, picked.icon, picked.color);
+      rpConvertId = null;
+      closeSheet('rp-convert-sheet');
+      if (!newItem) { toast('변경에 실패했습니다'); return; }
+      Data.refreshFromLocal();
+      MapView.renderMarkers(onMarkerClick);
+      populatePointSelects();
+      toast('공항·비행장으로 변경되었습니다');
+    });
 
     // 항법경로 추가
     $id('ar-pick-via-btn').addEventListener('click', pickViaPoints);
@@ -2088,6 +2118,8 @@
     populateLandingKindSelect();
     landingPicker = Icons.mountPicker($id('al-icon-grid'), $id('al-color-row'),
       Icons.defaultIcon('offsite_landings'), Icons.defaultColor('offsite_landings'));
+    rpConvertPicker = Icons.mountPicker($id('rp2ap-icon-grid'), $id('rp2ap-color-row'),
+      Icons.defaultIcon('airports'), Icons.defaultColor('airports'));
     bulkStylePicker = Icons.mountPicker($id('bulk-icon-grid'), $id('bulk-color-row'),
       Icons.PRESETS[0], Icons.COLORS[0]);
     $id('bulk-style-cancel-btn').addEventListener('click', function () { closeSheet('bulk-style-sheet'); });
