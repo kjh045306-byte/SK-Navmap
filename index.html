@@ -117,13 +117,7 @@
         <span class="nav">항법지도</span>
       </div>
       <div class="top-spacer"></div>
-      <div class="top-user" id="top-user" style="display:none">
-        <span class="top-user-email" id="top-user-email">—</span>
-        <button class="top-btn" id="logout-btn" aria-label="로그아웃"><span class="btn-icon">🚪</span><span class="btn-label">로그아웃</span></button>
-      </div>
       <button class="top-btn" id="search-btn" aria-label="검색"><span class="btn-icon">🔍</span><span class="btn-label">검색</span></button>
-      <button class="top-btn" id="layer-btn" aria-label="레이어"><span class="btn-icon">🗺️</span><span class="btn-label">레이어</span></button>
-      <button class="top-btn" id="sync-btn" aria-label="동기화" title="클라우드에서 최신 데이터 받아오기"><span class="btn-icon">🔄</span><span class="btn-label">동기화</span></button>
       <button class="top-btn" id="measure-btn" aria-label="거리측정">
         <span class="btn-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -136,6 +130,21 @@
         </span>
         <span class="btn-label">거리측정</span>
       </button>
+      <button class="top-btn" id="layer-btn" aria-label="레이어"><span class="btn-icon">🗺️</span><span class="btn-label">레이어</span></button>
+      <button class="top-btn" id="sync-btn" aria-label="동기화" title="클라우드에서 최신 데이터 받아오기"><span class="btn-icon">🔄</span><span class="btn-label">동기화</span></button>
+      <div class="top-user" id="top-user" style="display:none">
+        <span class="top-user-email" id="top-user-email">—</span>
+        <button class="top-btn" id="logout-btn" aria-label="로그아웃">
+          <span class="btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </span>
+          <span class="btn-label">로그아웃</span>
+        </button>
+      </div>
     </div>
   </div>
 
