@@ -275,6 +275,13 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 /* 검색 결과 정보 시트 액션 */
 .sr-actions{display:flex;gap:10px;margin:0 18px 14px}
 
+/* ══════════════════════════ 로드뷰 모달 ══════════════════════════ */
+#streetview-sheet .sheet-panel{height:85vh}
+.sv-body{position:relative;flex:1;min-height:0;background:#000}
+.sv-pano{position:absolute;inset:0}
+.sv-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:20px;color:var(--dim);font-size:13px}
+
 /* ══════════════════════════ 마커 탭 시트 ══════════════════════════ */
 #marker-sheet .sheet-panel{max-height:65vh}
 .marker-header{padding:4px 18px 14px;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
@@ -431,6 +438,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .lp-role-btn.dep:active{background:rgba(0,200,255,0.18);border-color:var(--blue)}
 .lp-role-btn.arr:active{background:rgba(255,107,0,0.18);border-color:var(--sk-orange)}
 .lp-role-btn.via:active{background:rgba(255,215,0,0.18);border-color:var(--gold)}
+.lp-role-btn.streetview:active{background:rgba(168,85,247,0.18);border-color:#a855f7}
 
 /* 근처 등록지점 자동 스냅 확인 카드 */
 .lp-snap-card{margin:0 18px 14px;background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.3);border-radius:14px;padding:12px 14px}

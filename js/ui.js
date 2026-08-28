@@ -64,6 +64,7 @@
   }
   function closeSheet(id) {
     $id(id).classList.remove('open');
+    if (id === 'streetview-sheet') MapView.hideStreetView();
     if (!document.querySelector('.sheet.open')) document.body.classList.remove('sheet-open');
   }
 
@@ -888,6 +889,28 @@
     win.document.close();
   }
 
+  /* ── 로드뷰(Street View) 모달 — 착륙장 마커 정보시트 + 지도 롱프레스 두 곳에서 공용으로 사용 ── */
+  var STREETVIEW_KINDS = { sk_landings: 1, offsite_landings: 1, hospital_landings: 1, ultralight_landings: 1, airports: 1 };
+
+  function openStreetViewFor(lat, lng) {
+    var pano = $id('streetview-pano');
+    var msg = $id('streetview-msg');
+    pano.style.display = 'none';
+    msg.style.display = 'flex';
+    msg.textContent = '확인 중...';
+    openSheet('streetview-sheet');
+    MapView.checkAndShowStreetView(pano, lat, lng).then(function (found) {
+      if (found) {
+        pano.style.display = 'block';
+        msg.style.display = 'none';
+      } else {
+        pano.style.display = 'none';
+        msg.style.display = 'flex';
+        msg.textContent = '이 지점은 로드뷰 정보가 없습니다';
+      }
+    });
+  }
+
   /* ── 마커 클릭 → 정보 시트 ── */
   function onMarkerClick(point, kind) {
     var typeLabel = (Data.LAYER_STYLES[kind] && Data.LAYER_STYLES[kind].label) || kind;
@@ -943,6 +966,13 @@
         closeSheet('marker-sheet');
         toast('삭제되었습니다');
       };
+    }
+
+    // 로드뷰 보기 — 착륙장류(sk/offsite/hospital/ultralight_landings, airports)에만 노출
+    var svShow = !!STREETVIEW_KINDS[kind];
+    $id('marker-streetview-actions').style.display = svShow ? '' : 'none';
+    if (svShow) {
+      $id('marker-streetview-btn').onclick = function () { openStreetViewFor(point.lat, point.lng); };
     }
 
     updateMarkerRouteActions(point);
@@ -1999,6 +2029,11 @@
     $id('lp-role-dep').addEventListener('click', function () { lpSelectRole('dep'); });
     $id('lp-role-via').addEventListener('click', function () { lpSelectRole('via'); });
     $id('lp-role-arr').addEventListener('click', function () { lpSelectRole('arr'); });
+    // 로드뷰 보기 — lpPendingPoint를 소비하지 않고(경로작성 상태 그대로) 로드뷰만 독립적으로 확인
+    $id('lp-role-streetview').addEventListener('click', function () {
+      if (lpPendingPoint) openStreetViewFor(lpPendingPoint.lat, lpPendingPoint.lng);
+    });
+    $id('streetview-close-btn').addEventListener('click', function () { closeSheet('streetview-sheet'); });
     $id('compose-undo-btn').addEventListener('click', lpUndoLast);
     $id('compose-cancel-btn').addEventListener('click', function () {
       if (confirm('작성 중인 경로를 취소할까요?')) lpCancelDraft();
