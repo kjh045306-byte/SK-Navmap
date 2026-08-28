@@ -95,9 +95,11 @@ button,input,select,textarea{font-family:inherit;color:inherit}
   .top-btn .btn-label{display:inline}
 }
 
-/* 결과 칩 */
+/* 결과 칩 — top-bar 높이(calc(var(--safe-top) + 10px) 패딩 + 34px 버튼 행 + 8px)와
+   동일한 공식을 써야 한다. 52px로 고정하면 safe-area-inset-top이 있는 기기(설치형 PWA,
+   분할화면 등)에서 top-bar만 늘어나고 이 패널은 그대로라 겹친다 */
 .result-bar{
-  position:absolute;top:52px;left:0;right:0;z-index:49;
+  position:absolute;top:calc(var(--safe-top) + 52px);left:0;right:0;z-index:49;
   padding:0 14px;display:flex;gap:6px;flex-wrap:wrap;
   transform:translateY(-60px);opacity:0;pointer-events:none;
   transition:all 0.3s cubic-bezier(0.32,0.72,0,1);
@@ -243,7 +245,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 }
 .route-card:active{border-color:var(--sk-orange);background:rgba(255,107,0,0.05)}
 .rc-icon{width:36px;height:36px;border-radius:10px;background:rgba(255,107,0,0.15);
-  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff}
 .rc-info{flex:1;min-width:0}
 .rc-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rc-dep-arr{font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

@@ -1348,7 +1348,12 @@
 
   function buildRouteCard(r) {
     var card = el('div', 'route-card');
-    var icon = el('div', 'rc-icon', '✈️');
+    var icon = el('div', 'rc-icon');
+    // 로고(top-bar)에서 쓰는 헬기 SVG 재사용 — index.html .logo-icon과 동일한 마크업
+    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">'
+      + '<line x1="2" y1="5" x2="22" y2="5"/><line x1="12" y1="5" x2="12" y2="8"/><rect x="6" y="8" width="11" height="7" rx="3.5"/>'
+      + '<line x1="17" y1="12" x2="21" y2="15"/><line x1="21" y1="12.5" x2="21" y2="17"/><line x1="8" y1="15" x2="6.5" y2="19"/>'
+      + '<line x1="14" y1="15" x2="14.5" y2="19"/><line x1="5.5" y1="19" x2="15.5" y2="19"/></svg>';
     var info = el('div', 'rc-info');
     info.appendChild(el('div', 'rc-name', r.name + (r.isUser ? ' 🆕' : '')));
     var da = el('div', 'rc-dep-arr');
