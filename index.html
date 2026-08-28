@@ -211,7 +211,6 @@
       <button class="lp-role-btn dep" id="lp-role-dep">🛫 출발지로 지정</button>
       <button class="lp-role-btn via" id="lp-role-via">📍 경유지로 지정</button>
       <button class="lp-role-btn arr" id="lp-role-arr">🛬 도착지로 지정</button>
-      <button class="lp-role-btn streetview" id="lp-role-streetview">🏙️ 로드뷰 보기</button>
     </div>
     <div class="sheet-bottom"></div>
   </div>
@@ -305,9 +304,6 @@
         </div>
         <button class="fms-copy" id="dms-copy-btn">📋</button>
       </div>
-    </div>
-    <div class="sr-actions" id="marker-streetview-actions" style="display:none">
-      <button class="btn-secondary" id="marker-streetview-btn">🏙️ 로드뷰 보기</button>
     </div>
     <div class="sr-actions" id="marker-route-actions"></div>
     <div class="related-title">관련 항법경로</div>
@@ -751,27 +747,6 @@
     <div class="sr-actions">
       <button class="btn-secondary" id="sr-add-landing-btn">🅗 착륙장으로 추가</button>
       <button class="btn-primary" id="sr-add-via-btn" style="display:none">📍 경유지로 추가</button>
-    </div>
-    <div class="sheet-bottom"></div>
-  </div>
-</div>
-
-<!-- ── 로드뷰(Street View) 모달 ── -->
-<div class="sheet" id="streetview-sheet">
-  <div class="sheet-overlay"></div>
-  <div class="sheet-panel">
-    <div class="sheet-handle"></div>
-    <div class="marker-header">
-      <div>
-        <div class="marker-name">🏙️ 로드뷰</div>
-      </div>
-      <div class="marker-header-btns">
-        <button class="icon-btn" id="streetview-close-btn">✕</button>
-      </div>
-    </div>
-    <div class="sv-body">
-      <div class="sv-pano" id="streetview-pano" style="display:none"></div>
-      <div class="sv-msg" id="streetview-msg">확인 중...</div>
     </div>
     <div class="sheet-bottom"></div>
   </div>

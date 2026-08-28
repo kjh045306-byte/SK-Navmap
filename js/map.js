@@ -24,8 +24,6 @@
   var routePointClickHandler = null; // 설정되어 있으면 sk/land/wp 마커 탭 시 정보시트 대신 이 콜백(point, kind)으로 전달
   var measurePointMarkers = []; // 거리측정 중 확정된 점마다 찍는 노란 점 마커
   var rubberBandLine = null; // 거리측정: 마지막 확정점 → 현재 커서까지 실시간으로 늘어나는 임시선
-  var streetViewService = null; // 좌표 근처 파노라마 존재 확인용(과금 대상 아님)
-  var streetViewPano = null; // 로드뷰 모달 안에 표시하는 StreetViewPanorama — 재사용(닫을 때 setVisible(false)만)
 
   // ── 지도 누르기 유지(long-press) 감지 ──
   // 지도 스크롤(팬) 제스처와 반드시 구분되어야 하므로, 누른 지점에서 화면 픽셀거리(LONG_PRESS_TOL_PX) 이상
@@ -339,34 +337,6 @@
         }
       });
     });
-  }
-
-  // 로드뷰: 좌표 반경 50m 안에 파노라마가 있는지 먼저 확인(StreetViewService는 과금 대상이 아니므로
-  // 부담 없이 항상 먼저 호출). 있으면 container에 파노라마를 표시하고 true, 없으면 false를 resolve한다
-  function checkAndShowStreetView(container, lat, lng) {
-    return new Promise(function (resolve) {
-      if (!streetViewService) streetViewService = new google.maps.StreetViewService();
-      streetViewService.getPanorama({ location: { lat: lat, lng: lng }, radius: 50 }, function (data, status) {
-        if (status !== google.maps.StreetViewStatus.OK) { resolve(false); return; }
-        if (!streetViewPano) {
-          streetViewPano = new google.maps.StreetViewPanorama(container, {
-            pano: data.location.pano,
-            addressControl: false,
-            fullscreenControl: false,
-            motionTrackingControl: false
-          });
-        } else {
-          streetViewPano.setPano(data.location.pano);
-          streetViewPano.setVisible(true);
-        }
-        resolve(true);
-      });
-    });
-  }
-
-  // 모달을 닫을 때 호출 — 인스턴스는 재사용하고 화면에서만 숨긴다(다음에 열 때 setPano로 위치만 갱신)
-  function hideStreetView() {
-    if (streetViewPano) streetViewPano.setVisible(false);
   }
 
   function showSearchMarker(lat, lng, title) {
@@ -699,8 +669,6 @@
     previewRubberBand: previewRubberBand,
     clearRubberBand: clearRubberBand,
     setMouseMoveHandler: setMouseMoveHandler,
-    clearMouseMoveHandler: clearMouseMoveHandler,
-    checkAndShowStreetView: checkAndShowStreetView,
-    hideStreetView: hideStreetView
+    clearMouseMoveHandler: clearMouseMoveHandler
   };
 })(window);
