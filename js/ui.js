@@ -14,7 +14,7 @@
   var displayedRoute = null; // 위와 동일한 경로의 전체 객체 — "이 경로 Log 인쇄" 버튼이 참조
   // marker "kind"는 Data 타입 키(sk_landings/offsite_landings/hospital_landings/ultralight_landings/airports/waypoints)와 그대로 동일하게 사용한다
   var LAYER_ORDER = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'cp', 'waypoints', 'ctrz', 'reportPoints', 'gwanjegwon', 'restricted'];
-  var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports'];
+  var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'airports', 'hospital_landings', 'ultralight_landings'];
   var landingPicker = null; // 착륙장 추가/수정 폼의 아이콘/색상 선택 컴포넌트 (init에서 mountPicker로 생성)
   var awKind = 'waypoints'; // add-waypoint-sheet에서 현재 선택된 종류('waypoints'|'reportPoints')
   var rpConvertId = null; // Report Point → 공항·비행장 종류 변경 대상 id (rp-convert-sheet가 열려있는 동안)
