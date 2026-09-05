@@ -4663,7 +4663,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_bd74b956"
     },
     {
@@ -4743,7 +4743,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_2c1fd563"
     },
     {
@@ -4815,7 +4815,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_e2b3f303"
     },
     {
@@ -4939,7 +4939,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_7ffad14b"
     },
     {
@@ -5031,7 +5031,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_d3c6f199"
     },
     {
@@ -5111,7 +5111,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_999d5e94"
     },
     {
@@ -5159,7 +5159,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_a39d6e7e"
     },
     {
@@ -5247,7 +5247,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_fcd5f18d"
     },
     {
@@ -5327,7 +5327,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_e2f93225"
     },
     {
@@ -5403,7 +5403,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_07e6882e"
     },
     {
@@ -5479,7 +5479,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_752f3452"
     },
     {
@@ -5579,7 +5579,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_282d73cb"
     },
     {
@@ -5651,7 +5651,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_f6d651c7"
     },
     {
@@ -5707,7 +5707,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_59417b03"
     },
     {
@@ -5799,7 +5799,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_0d74754d"
     },
     {
@@ -5895,7 +5895,7 @@
         }
       ],
       "memo": "",
-      "depGroup": "인천공항출발",
+      "depGroup": null,
       "id": "r_1b92e92a"
     }
   ],

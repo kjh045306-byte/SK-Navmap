@@ -1338,6 +1338,7 @@
     tabRow.innerHTML = '';
     var tabs = [{ v: 'all', label: '전체' }, { v: 'fav', label: '⭐ 즐겨찾기' }];
     computeDepGroups().forEach(function (g) { tabs.push({ v: g, label: g }); });
+    tabs.push({ v: 'jamsil', label: '잠실출발' }); // depGroup 태그가 아니라 출발지 이름("잠실" 포함) 기반 동적 필터
     tabs.forEach(function (t) {
       var btn = el('button', 'tab-pill' + (currentTab === t.v ? ' active' : ''), t.label);
       btn.addEventListener('click', function () {
@@ -1441,6 +1442,7 @@
     var list = Data.ROUTES.filter(function (r) {
       var matchTab = currentTab === 'all' ||
         (currentTab === 'fav' && Data.isFavorite(r.name)) ||
+        (currentTab === 'jamsil' && r.depName.indexOf('잠실') >= 0) ||
         (r.depGroup === currentTab);
       var matchQ = !q ||
         r.name.toLowerCase().indexOf(q) >= 0 ||
