@@ -182,9 +182,16 @@
     </div>
     <!-- 거리측정 모드 — 저장하지 않는 일회성 도구, 경로작성과 같은 "탭해서 점 찍기" 재사용 -->
     <div class="action-row compose-row" id="measure-row" style="display:none">
-      <div class="compose-main">
-        <div class="compose-main-title">총 거리</div>
-        <div class="compose-main-sub" id="measure-dist-value">0.0 NM (0.0 km)</div>
+      <div class="compose-main measure-main">
+        <div class="measure-stat">
+          <div class="measure-stat-label">총 거리</div>
+          <div class="measure-stat-value" id="measure-dist-value">0.0 NM (0.0 km)</div>
+        </div>
+        <div class="measure-divider"></div>
+        <div class="measure-stat">
+          <div class="measure-stat-label">130KTS 기준</div>
+          <div class="measure-stat-value" id="measure-time-value">0.0분</div>
+        </div>
       </div>
       <button class="action-fab fab-undo" id="measure-undo-btn" title="마지막 점 취소">↩️</button>
       <button class="action-fab fab-cancel" id="measure-done-btn" title="측정 종료">✕</button>

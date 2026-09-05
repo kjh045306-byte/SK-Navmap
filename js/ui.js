@@ -407,8 +407,14 @@
     return nm.toFixed(1) + ' NM (' + (nm * 1.852).toFixed(1) + ' km)';
   }
 
+  // 거리(NM)가 바뀔 때마다 항법로그 인쇄와 동일한 Calc.timeMin(dist, 130) 공식으로 소요시간도 함께 갱신
+  function updateMeasureStats(nm) {
+    $id('measure-dist-value').textContent = formatMeasureDistance(nm);
+    $id('measure-time-value').textContent = Calc.timeMin(nm, 130).toFixed(1) + '분';
+  }
+
   function updateMeasureDistance() {
-    $id('measure-dist-value').textContent = formatMeasureDistance(Calc.routeDistanceNM(measurePoints));
+    updateMeasureStats(Calc.routeDistanceNM(measurePoints));
   }
 
   function measureTapHandler(latlng) {
@@ -427,7 +433,7 @@
     var last = measurePoints[measurePoints.length - 1];
     MapView.previewRubberBand(last, latlng);
     var total = Calc.routeDistanceNM(measurePoints) + Calc.haversineNM(last.lat, last.lng, latlng.lat, latlng.lng);
-    $id('measure-dist-value').textContent = formatMeasureDistance(total);
+    updateMeasureStats(total);
   }
 
   function startMeasure() {
