@@ -1447,7 +1447,7 @@
         r.depName.toLowerCase().indexOf(q) >= 0 ||
         r.arrName.toLowerCase().indexOf(q) >= 0;
       return matchTab && matchQ;
-    });
+    }).sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); });
     var wrap = $id('route-list');
     wrap.innerHTML = '';
     if (list.length === 0) {
