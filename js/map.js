@@ -315,27 +315,29 @@
     };
   }
 
-  // Google Places 텍스트 검색 — 결과를 { name, address, lat, lng } 배열로 변환
+  // Google Places 텍스트 검색(신형 Place API) — 레거시 PlacesService.textSearch는
+  // 2025-03-01부로 신규 프로젝트에 차단되어(ApiTargetBlockedMapError) Place.searchByText로 교체.
+  // 결과를 { name, address, lat, lng } 배열로 변환
   function searchPlaces(query) {
-    return new Promise(function (resolve, reject) {
-      if (!google.maps.places) { reject(new Error('Places 라이브러리가 로드되지 않았습니다')); return; }
-      var svc = new google.maps.places.PlacesService(map);
-      svc.textSearch({ query: query, region: 'kr' }, function (results, status) {
-        if (status === google.maps.places.PlacesServiceStatus.OK) {
-          resolve((results || []).map(function (r) {
-            return {
-              name: r.name,
-              address: r.formatted_address || '',
-              lat: r.geometry.location.lat(),
-              lng: r.geometry.location.lng()
-            };
-          }));
-        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-          resolve([]);
-        } else {
-          reject(new Error(status));
-        }
+    if (!google.maps.importLibrary) return Promise.reject(new Error('Places 라이브러리를 사용할 수 없습니다'));
+    return google.maps.importLibrary('places').then(function (lib) {
+      return lib.Place.searchByText({
+        textQuery: query,
+        fields: ['displayName', 'formattedAddress', 'location'],
+        language: 'ko',
+        region: 'kr'
       });
+    }).then(function (res) {
+      return (res.places || []).map(function (p) {
+        return {
+          name: p.displayName,
+          address: p.formattedAddress || '',
+          lat: p.location.lat(),
+          lng: p.location.lng()
+        };
+      });
+    }, function (err) {
+      throw new Error((err && (err.code || err.message)) || 'UNKNOWN_ERROR');
     });
   }
 

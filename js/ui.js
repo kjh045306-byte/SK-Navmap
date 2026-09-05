@@ -686,7 +686,8 @@
     }).catch(function (e) {
       console.error(e);
       wrap.innerHTML = '';
-      var msg = String(e.message || '').indexOf('REQUEST_DENIED') >= 0
+      var em = String(e.message || '');
+      var msg = (em.indexOf('REQUEST_DENIED') >= 0 || em.indexOf('PERMISSION_DENIED') >= 0 || em.indexOf('UNAUTHENTICATED') >= 0)
         ? 'Places API가 활성화되어 있지 않습니다 (Google Cloud Console 확인 필요)'
         : '검색 중 오류가 발생했습니다';
       wrap.appendChild(el('div', 'empty-hint', msg));
