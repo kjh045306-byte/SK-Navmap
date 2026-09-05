@@ -199,7 +199,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .measure-main{display:flex;align-items:center;gap:12px}
 .measure-stat{flex:1;min-width:0}
 .measure-stat-label{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.measure-stat-value{font-size:22px;font-weight:700;color:#fff;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.measure-stat-value{font-size:clamp(14px,4.2vw,17px);font-weight:700;color:#fff;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .measure-divider{width:1px;align-self:stretch;background:var(--border);flex-shrink:0}
 .fab-undo{background:rgba(255,255,255,0.1);color:#fff;border:1px solid var(--border);font-size:18px}
 .fab-save{background:var(--sk-orange);color:#fff;font-size:18px}
