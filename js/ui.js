@@ -404,7 +404,9 @@
   }
 
   function formatMeasureDistance(nm) {
-    return nm.toFixed(1) + ' NM (' + (nm * 1.852).toFixed(1) + ' km)';
+    var meters = nm * 1852;
+    var sub = meters < 1852 ? Math.round(meters) + ' m' : (meters / 1000).toFixed(1) + ' km';
+    return nm.toFixed(1) + ' NM (' + sub + ')';
   }
 
   // 거리(NM)가 바뀔 때마다 항법로그 인쇄와 동일한 Calc.timeMin(dist, 130) 공식으로 소요시간도 함께 갱신
