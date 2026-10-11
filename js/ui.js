@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var currentTab = 'all';
+  var currentTab = '김포출발';
   var searchQuery = '';
   var toastTimer = null;
   var viaPoints = [];
