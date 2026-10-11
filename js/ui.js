@@ -916,25 +916,33 @@
     var related = nearMatch
       ? Data.ROUTES.filter(function (r) { return routePassesNear(r, point.lat, point.lng, SNAP_RADIUS_NM); })
       : Data.ROUTES.filter(function (r) { return r.depName === point.name || r.arrName === point.name; });
-    var wrap = $id('related-routes');
-    wrap.innerHTML = '';
+    var sel = $id('related-routes');
+    sel.innerHTML = '';
+    sel.onchange = null;
     if (related.length === 0) {
-      wrap.appendChild(el('div', 'empty-hint', '등록된 경로 없음'));
+      var emptyOpt = el('option', null, '등록된 경로 없음');
+      emptyOpt.value = '';
+      sel.appendChild(emptyOpt);
+      sel.disabled = true;
     } else {
-      related.forEach(function (r) {
+      sel.disabled = false;
+      var ph = el('option', null, '경로 선택 (' + related.length + '건)');
+      ph.value = '';
+      sel.appendChild(ph);
+      related.forEach(function (r, i) {
         var isDep = r.depName === point.name;
         var dir = nearMatch ? '경유' : (isDep ? '→' : '←');
         var dest = nearMatch ? (r.depName + ' → ' + r.arrName) : (isDep ? r.arrName : r.depName);
-        var chip = el('div', 'related-chip');
-        chip.appendChild(el('div', 'related-dir', dir));
-        chip.appendChild(el('div', 'related-dest', dest));
-        chip.appendChild(el('div', 'related-time', r.t130.toFixed(1) + '분 / ' + Math.round(r.fuel) + 'LBS'));
-        chip.addEventListener('click', function () {
-          selectRouteAndShow(r);
-          closeSheet('marker-sheet');
-        });
-        wrap.appendChild(chip);
+        var opt = el('option', null, dir + ' ' + dest + ' · ' + r.t130.toFixed(1) + '분 / ' + Math.round(r.fuel) + 'LBS');
+        opt.value = String(i);
+        sel.appendChild(opt);
       });
+      sel.onchange = function () {
+        var r = related[parseInt(sel.value, 10)];
+        if (!r) return;
+        selectRouteAndShow(r);
+        closeSheet('marker-sheet');
+      };
     }
 
     // CP는 참고전용(사용자 추가/수정 불가)이므로 수정/삭제 버튼을 숨긴다

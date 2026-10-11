@@ -303,16 +303,8 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .fms-copy{background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.3);
   border-radius:8px;color:var(--sk-orange);font-size:11px;padding:6px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .related-title{font-size:10px;color:var(--dim);letter-spacing:1px;padding:0 18px 8px;border-top:1px solid var(--border);padding-top:12px;flex-shrink:0}
-.related-scroll{overflow-x:auto;padding:0 14px;scrollbar-width:none;display:flex;gap:8px;flex-shrink:0}
-.related-scroll::-webkit-scrollbar{display:none}
-.related-chip{
-  flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:10px;
-  padding:8px 12px;cursor:pointer;min-width:120px;transition:border-color 0.15s;
-}
-.related-chip:active{border-color:var(--sk-orange)}
-.related-dir{font-size:10px;color:var(--dim);margin-bottom:3px}
-.related-dest{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap}
-.related-time{font-size:11px;color:var(--green);margin-top:2px}
+.related-select-wrap{padding:0 18px 14px;flex-shrink:0}
+.related-select-wrap select{width:100%;font-size:13px}
 
 /* ══════════════════════════ + 추가 메뉴 / 레이어 시트 ══════════════════════════ */
 .add-menu-list,.layer-list{padding:0 14px 8px;overflow-y:auto}
