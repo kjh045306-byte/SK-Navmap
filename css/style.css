@@ -232,10 +232,9 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .search-icon{position:absolute;right:26px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:16px;pointer-events:none}
 
 /* 탭 */
-.tab-row{display:flex;padding:0 14px 8px;gap:8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
-.tab-row::-webkit-scrollbar{display:none}
+.tab-row{display:flex;flex-wrap:wrap;padding:0 14px 8px;gap:6px;flex-shrink:0}
 .tab-pill{
-  flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;
+  flex-shrink:0;padding:7px 11px;border-radius:20px;font-size:12px;font-weight:600;
   cursor:pointer;border:1px solid var(--border);color:var(--dim);background:none;
   transition:all 0.15s;white-space:nowrap;
 }
@@ -475,7 +474,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 #install-dismiss{background:rgba(255,255,255,0.08);color:var(--dim);padding:8px 10px}
 
 @media (min-width:640px){
-  .sheet-panel{max-width:480px;left:50%;transform:translate(-50%,100%);border-radius:20px 20px 0 0}
+  .sheet-panel{max-width:480px;width:100%;right:auto;left:50%;transform:translate(-50%,100%);border-radius:20px 20px 0 0}
   .sheet.open .sheet-panel{transform:translate(-50%,0)}
   .install-banner{max-width:420px;left:50%;transform:translateX(-50%)}
   .bottom-bar,.top-bar{max-width:640px;left:50%;transform:translateX(-50%)}
