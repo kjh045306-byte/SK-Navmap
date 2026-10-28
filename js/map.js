@@ -372,6 +372,7 @@
   var MAP_STYLES = [
     { elementType: 'labels', stylers: [{ visibility: 'off' }] },
     { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'on' }] },
+    { featureType: 'administrative.country', elementType: 'labels', stylers: [{ visibility: 'off' }] }, // 국가명("조선민주주의인민공화국" 등)은 시야를 가려 숨김 — 위 administrative 규칙 뒤에 와야 덮어쓰지 않음
     { featureType: 'poi', stylers: [{ visibility: 'off' }] },
     { featureType: 'transit', stylers: [{ visibility: 'off' }] }
   ];
