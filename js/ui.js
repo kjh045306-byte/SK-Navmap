@@ -1342,19 +1342,26 @@
     $id('route-print-btn').classList.remove('show');
   }
 
-  /* ── 경로 검색 시트 (탭은 경로의 depGroup 필드로 필터링 — 레이어와 무관) ── */
-  function computeDepGroups() {
-    var groups = {};
-    Data.ROUTES.forEach(function (r) { if (r.depGroup) groups[r.depGroup] = true; });
-    return Object.keys(groups).sort(function (a, b) { return a.localeCompare(b, 'ko'); });
+  /* ── 경로 검색 시트 (출발지 탭: depGroup 태그 또는 출발지 이름 키워드 — 레이어와 무관) ── */
+  // 탭 라벨 → 출발지 키워드. depName에서 공백을 모두 제거한 문자열에 키워드가 포함되면 해당 탭에 속함
+  var DEP_TAB_KEYWORDS = [
+    { v: '김포출발', kw: '김포' },
+    { v: '만남출발', kw: '만남' },
+    { v: '잠실출발', kw: '잠실' },
+    { v: '인천출발', kw: '인천공항' }
+  ];
+
+  function routeInDepTab(r, tab) {
+    if (r.depGroup === tab) return true;
+    var def = DEP_TAB_KEYWORDS.filter(function (d) { return d.v === tab; })[0];
+    return !!def && (r.depName || '').replace(/\s+/g, '').indexOf(def.kw) >= 0;
   }
 
   function renderRouteTabs() {
     var tabRow = $id('route-tabs');
     tabRow.innerHTML = '';
     var tabs = [{ v: 'all', label: '전체' }, { v: 'fav', label: '⭐ 즐겨찾기' }];
-    computeDepGroups().forEach(function (g) { tabs.push({ v: g, label: g }); });
-    tabs.push({ v: 'jamsil', label: '잠실출발' }); // depGroup 태그가 아니라 출발지 이름("잠실" 포함) 기반 동적 필터
+    DEP_TAB_KEYWORDS.forEach(function (d) { tabs.push({ v: d.v, label: d.v }); });
     tabs.forEach(function (t) {
       var btn = el('button', 'tab-pill' + (currentTab === t.v ? ' active' : ''), t.label);
       btn.addEventListener('click', function () {
@@ -1458,8 +1465,7 @@
     var list = Data.ROUTES.filter(function (r) {
       var matchTab = currentTab === 'all' ||
         (currentTab === 'fav' && Data.isFavorite(r.name)) ||
-        (currentTab === 'jamsil' && r.depName.indexOf('잠실') >= 0) ||
-        (r.depGroup === currentTab);
+        routeInDepTab(r, currentTab);
       var matchQ = !q ||
         r.name.toLowerCase().indexOf(q) >= 0 ||
         r.depName.toLowerCase().indexOf(q) >= 0 ||
