@@ -16,6 +16,7 @@
   // marker "kind"는 Data 타입 키(sk_landings/offsite_landings/hospital_landings/ultralight_landings/airports/waypoints)와 그대로 동일하게 사용한다
   var LAYER_ORDER = ['sk_landings', 'offsite_landings', 'hospital_landings', 'ultralight_landings', 'airports', 'cp', 'waypoints', 'ctrz', 'reportPoints', 'gwanjegwon', 'restricted'];
   var LANDING_KINDS = ['sk_landings', 'offsite_landings', 'airports', 'hospital_landings', 'ultralight_landings'];
+  var alShowAip = false; // 착륙장 폼의 showAip 저장값 (airports 선택 시 체크박스는 강제 체크/비활성이지만 이 값은 보존)
   var landingPicker = null; // 착륙장 추가/수정 폼의 아이콘/색상 선택 컴포넌트 (init에서 mountPicker로 생성)
   var awKind = 'waypoints'; // add-waypoint-sheet에서 현재 선택된 종류('waypoints'|'reportPoints')
   var rpConvertId = null; // Report Point → 공항·비행장 종류 변경 대상 id (rp-convert-sheet가 열려있는 동안)
@@ -731,11 +732,12 @@
   }
 
   // 공항·비행장(airports) 마커에서만 공식 eAIP 링크 버튼을 보여준다 (새 탭, 앱 화면 유지)
-  function updateMarkerAipLink(kind) {
+  function updateMarkerAipLink(kind, point) {
     var wrap = $id('marker-aip-actions');
     wrap.innerHTML = '';
-    wrap.style.display = kind === 'airports' ? '' : 'none';
-    if (kind !== 'airports') return;
+    var show = kind === 'airports' || (LANDING_KINDS.indexOf(kind) >= 0 && !!point && point.showAip === true);
+    wrap.style.display = show ? '' : 'none';
+    if (!show) return;
     var a = el('a', 'btn-secondary', 'AIP');
     a.href = AIP_URL;
     a.target = '_blank';
@@ -980,7 +982,7 @@
       };
     }
 
-    updateMarkerAipLink(kind);
+    updateMarkerAipLink(kind, point);
     updateMarkerRouteActions(point);
     openSheet('marker-sheet');
   }
@@ -1005,6 +1007,8 @@
       $id('al-lng').value = point.lng;
       $id('al-memo').value = point.memo || '';
       landingPicker.setValue(Icons.iconOf(kind, point), Icons.colorOf(kind, point));
+      alShowAip = point.showAip === true;
+      syncAlShowAipUI();
       $id('add-landing-sheet').querySelector('.sheet-title').textContent = '착륙장 수정';
       openSheet('add-landing-sheet');
     }
@@ -1636,7 +1640,16 @@
     $id('aw-convert-airport-btn').style.display = (editingPoint && kind === 'reportPoints') ? '' : 'none';
   }
 
+  // AIP 버튼 표시 체크박스: airports는 항상 표시(체크+비활성), 그 외는 저장된 값(alShowAip)으로 복원
+  function syncAlShowAipUI() {
+    var cb = $id('al-show-aip');
+    var isAirport = $id('al-kind').value === 'airports';
+    cb.disabled = isAirport;
+    cb.checked = isAirport ? true : alShowAip;
+  }
+
   function resetLandingForm() {
+    alShowAip = false;
     if (editingPoint) MapView.setMarkerDraggable(editingPoint.type, editingPoint.id, false);
     $id('al-name').value = '';
     $id('al-lat').value = '';
@@ -1644,6 +1657,7 @@
     $id('al-memo').value = '';
     $id('al-kind').value = 'offsite_landings';
     landingPicker.setValue(Icons.defaultIcon('offsite_landings'), Icons.defaultColor('offsite_landings'));
+    syncAlShowAipUI();
     editingPoint = null;
     $id('add-landing-sheet').querySelector('.sheet-title').textContent = '착륙장 추가';
   }
@@ -1691,7 +1705,7 @@
     if (!name || isNaN(lat) || isNaN(lng)) { toast('이름과 좌표를 입력하세요'); return; }
     if (lat < 30 || lat > 43 || lng < 122 || lng > 133) { toast('좌표 범위를 확인하세요 (한국 인근)'); return; }
     var picked = landingPicker.getValue();
-    var fields = { name: name, lat: lat, lng: lng, memo: $id('al-memo').value.trim(), icon: picked.icon, color: picked.color };
+    var fields = { name: name, lat: lat, lng: lng, memo: $id('al-memo').value.trim(), icon: picked.icon, color: picked.color, showAip: alShowAip };
     var wasEditing = !!editingPoint;
     if (editingPoint) {
       if (editingPoint.type === kind) {
@@ -2123,7 +2137,10 @@
     // 레이어 시트 (change 리스너는 각 행 생성 시 buildLayerRow 안에서 연결됨)
     renderLayerRows();
     populateLandingKindSelect();
-    landingPicker = Icons.mountPicker($id('al-icon-grid'), $id('al-color-row'),
+    $id('al-kind').addEventListener('change', syncAlShowAipUI);
+    $id('al-show-aip').addEventListener('change', function () { if (!this.disabled) alShowAip = this.checked; });
+    syncAlShowAipUI();
+    landingPicker =Icons.mountPicker($id('al-icon-grid'), $id('al-color-row'),
       Icons.defaultIcon('offsite_landings'), Icons.defaultColor('offsite_landings'));
     rpConvertPicker = Icons.mountPicker($id('rp2ap-icon-grid'), $id('rp2ap-color-row'),
       Icons.defaultIcon('airports'), Icons.defaultColor('airports'));
