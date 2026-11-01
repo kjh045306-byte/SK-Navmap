@@ -2,6 +2,7 @@
 (function (global) {
   'use strict';
 
+  var AIP_URL = 'https://aim.koca.go.kr/eaipPub/Package/history-en-GB.html?language=ko_KR'; // 공항 마커시트 AIP 링크 (주소 변경 시 이 한 줄만 수정)
   var currentTab = '김포출발';
   var searchQuery = '';
   var toastTimer = null;
@@ -729,6 +730,21 @@
     return false;
   }
 
+  // 공항·비행장(airports) 마커에서만 공식 eAIP 링크 버튼을 보여준다 (새 탭, 앱 화면 유지)
+  function updateMarkerAipLink(kind) {
+    var wrap = $id('marker-aip-actions');
+    wrap.innerHTML = '';
+    wrap.style.display = kind === 'airports' ? '' : 'none';
+    if (kind !== 'airports') return;
+    var a = el('a', 'btn-secondary', 'AIP');
+    a.href = AIP_URL;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.style.textAlign = 'center';
+    a.style.textDecoration = 'none';
+    wrap.appendChild(a);
+  }
+
   // 마커시트 안의 "즉시 경로작성" 버튼 — 지도 누르기유지(lpSelectRole)와 완전히 같은 상태/로직을 공유한다
   function updateMarkerRouteActions(point) {
     var wrap = $id('marker-route-actions');
@@ -964,6 +980,7 @@
       };
     }
 
+    updateMarkerAipLink(kind);
     updateMarkerRouteActions(point);
     openSheet('marker-sheet');
   }
