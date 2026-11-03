@@ -1168,6 +1168,17 @@
     resetLandingForm();
   }
 
+  // airports 시트에서만 메모(memo)를 AIP 버튼 아래에 전부 표시한다. 본문은 textContent로만 넣는다. (착륙장은 "착륙장 정보" 박스의 비고에 표시)
+  function renderMarkerMemo(kind, point) {
+    var wrap = $id('marker-memo');
+    wrap.innerHTML = '';
+    var memo = (kind === 'airports' && point && typeof point.memo === 'string') ? point.memo.trim() : '';
+    wrap.style.display = memo ? '' : 'none';
+    if (!memo) return;
+    wrap.appendChild(el('div', 'mk-memo-label', '메모'));
+    wrap.appendChild(el('div', 'mk-memo-text', memo));
+  }
+
   // 공항·비행장(airports) 마커에서만 공식 eAIP 링크 버튼을 보여준다 (새 탭, 앱 화면 유지)
   function updateMarkerAipLink(kind, point) {
     var wrap = $id('marker-aip-actions');
@@ -1422,6 +1433,7 @@
     renderMarkerAirportInfo(kind, point);
     renderMarkerSiteInfo(kind, point);
     updateMarkerAipLink(kind, point);
+    renderMarkerMemo(kind, point);
     updateMarkerRouteActions(point);
     openSheet('marker-sheet');
   }

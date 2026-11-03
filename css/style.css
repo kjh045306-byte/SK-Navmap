@@ -528,3 +528,8 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .ai-err{font-size:11px;color:#ff6b6b;margin-top:4px;line-height:1.35}
 .ai-err.warn{color:var(--gold)}
 .ai-err:empty{display:none}
+
+/* 공항 시트 메모 (AIP 버튼 아래) */
+.mk-memo{margin:0 18px 14px;flex-shrink:0}
+.mk-memo-label{font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:4px}
+.mk-memo-text{font-size:13px;color:var(--text);white-space:pre-line;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}
