@@ -312,6 +312,7 @@
         <button class="fms-copy" id="dms-copy-btn">📋</button>
       </div>
     </div>
+    <div id="marker-airport-info" class="ai-wrap" style="display:none"></div>
     <div class="related-title">관련 항법경로</div>
     <div class="related-select-wrap"><select class="form-select" id="related-routes"></select></div>
     <div class="sr-actions" id="marker-aip-actions" style="display:none"></div>
@@ -586,6 +587,32 @@
       <div class="form-group">
         <div class="form-label">메모</div>
         <textarea class="form-textarea" id="al-memo" placeholder="선택 입력"></textarea>
+      </div>
+      <div id="al-airport-section" class="ai-form" style="display:none">
+        <div class="ai-form-title">공항 정보 입력</div>
+        <div class="form-group">
+          <div class="form-label">표고</div>
+          <div class="ai-row">
+            <input class="form-input" id="al-ai-elev" placeholder="숫자 (음수 가능)" autocomplete="off">
+            <select class="form-select ai-unit" id="al-ai-elev-unit"><option value="m">m</option><option value="ft">ft</option></select>
+          </div>
+          <div class="ai-err" id="al-ai-elev-err"></div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">활주로</div>
+          <div id="al-ai-rwy-list"></div>
+          <button type="button" class="ai-add" id="al-ai-rwy-add">＋ 활주로 추가</button>
+        </div>
+        <div class="form-group">
+          <div class="form-label">통신 주파수 (MHz)</div>
+          <div id="al-ai-comm-list"></div>
+          <button type="button" class="ai-add" id="al-ai-comm-add">＋ 서비스 추가</button>
+        </div>
+        <div class="form-group">
+          <div class="form-label">계기접근 시설</div>
+          <div id="al-ai-nav-list"></div>
+          <button type="button" class="ai-add" id="al-ai-nav-add">＋ 시설 추가</button>
+        </div>
       </div>
       <div class="form-actions">
         <button class="btn-secondary" id="al-cancel-btn">취소</button>

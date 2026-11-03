@@ -486,3 +486,45 @@ button,input,select,textarea{font-family:inherit;color:inherit}
   .via-pick-panel{max-width:640px;left:50%;transform:translateX(-50%)}
   .route-point-chooser{max-width:640px;left:50%;transform:translateX(-50%)}
 }
+
+/* ══════════════════════════ 공항 정보 (정보시트 박스 + 착륙장 폼 입력) ══════════════════════════ */
+#marker-sheet .sheet-panel{overflow-y:auto}
+.ai-wrap{margin:0 18px 14px;flex-shrink:0}
+.ai-box{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ai-head{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;
+  background:none;border:none;padding:10px 14px;cursor:pointer;text-align:left}
+.ai-head-title{font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.ai-head-sum{font-size:11px;color:var(--dim);text-align:right;min-width:0}
+.ai-body{padding:2px 14px 12px;border-top:1px solid var(--border)}
+.ai-sec{margin-top:10px}
+.ai-sec-label{font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:5px}
+.ai-val{font-size:14px;font-weight:700;color:var(--text)}
+.ai-sub{font-size:10px;color:var(--dim);margin-top:2px}
+.ai-none{font-size:12px;color:var(--dim)}
+.ai-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ai-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);border:1px solid var(--border);
+  border-radius:8px;padding:4px 9px;font-size:13px;font-family:monospace;color:var(--text)}
+.ai-mark{color:var(--gold);font-weight:700;font-size:11px;vertical-align:super;line-height:1}
+.ai-primary{color:var(--green);font-size:8px;font-weight:800;letter-spacing:0.3px;font-family:inherit}
+.ai-comm-block{margin-top:6px}
+.ai-comm-kind{font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px}
+.ai-nav-line{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0}
+.ai-dn-type{color:var(--text);min-width:0;overflow-wrap:anywhere}
+.ai-dn-freq{font-family:monospace;color:var(--text);flex-shrink:0}
+.ai-note{margin-top:12px;font-size:11px;color:var(--gold);line-height:1.4}
+.ai-form{border-top:1px solid var(--border);padding-top:12px;margin-bottom:6px}
+.ai-form-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:12px}
+.ai-row{display:flex;gap:6px;align-items:center}
+.ai-row .form-input{min-width:0;flex:1;padding:9px 10px;font-size:13px}
+.ai-row .ai-k{flex:0 0 36%}
+.ai-row .ai-n{flex:0 0 30%}
+.ai-row .ai-unit{width:72px;flex:0 0 72px;padding:9px 8px}
+.ai-del{flex:0 0 34px;height:34px;background:rgba(255,85,85,0.12);border:1px solid rgba(255,85,85,0.3);
+  border-radius:8px;color:#ff5555;font-size:13px;cursor:pointer;padding:0}
+.ai-rowwrap{margin-bottom:8px}
+.ai-add{background:rgba(0,200,255,0.1);border:1px dashed rgba(0,200,255,0.4);border-radius:10px;color:var(--blue);
+  font-size:12px;padding:9px;width:100%;cursor:pointer}
+.ai-bad{border-color:#ff4d4d !important}
+.ai-err{font-size:11px;color:#ff6b6b;margin-top:4px;line-height:1.35}
+.ai-err.warn{color:var(--gold)}
+.ai-err:empty{display:none}
