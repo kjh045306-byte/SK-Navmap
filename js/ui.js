@@ -855,6 +855,112 @@
     wrap.appendChild(box);
   }
 
+  /* ── 착륙장 정보(siteInfo) — SK착륙장/장외이착륙장 한정. airportInfo와 같은 규칙(통째 교체, 빈 값 복원) ── */
+  var SITE_KINDS = ['sk_landings', 'offsite_landings'];
+  var SITE_MAXLEN = 120;
+  function normSiteInfo(info) {
+    info = (info && typeof info === 'object') ? info : {};
+    var e = (info.elevation && typeof info.elevation === 'object') ? info.elevation : {};
+    return {
+      elevation: { value: (typeof e.value === 'number' && isFinite(e.value)) ? e.value : null, unit: e.unit === 'ft' ? 'ft' : 'm' },
+      size: aiStr(info.size), approach: aiStr(info.approach), manager: aiStr(info.manager)
+    };
+  }
+  function siteInfoHasValue(n) { return n.elevation.value != null || !!(n.size || n.approach || n.manager); }
+
+  function renderMarkerSiteInfo(kind, point) {
+    var wrap = $id('marker-site-info');
+    wrap.innerHTML = '';
+    if (SITE_KINDS.indexOf(kind) < 0) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    var info = normSiteInfo(point && point.siteInfo);
+    var memo = (point && typeof point.memo === 'string') ? point.memo.trim() : '';
+    var has = siteInfoHasValue(info) || memo !== '';
+
+    var box = el('div', 'ai-box');
+    var head = el('button', 'ai-head');
+    head.type = 'button';
+    head.setAttribute('aria-expanded', 'false');
+    head.appendChild(el('span', 'ai-head-title', '착륙장 정보'));
+    var sum = el('span', 'ai-head-sum', (has ? '입력됨' : '미입력') + ' ▸');
+    head.appendChild(sum);
+    var body = el('div', 'ai-body');
+    body.hidden = true;
+    function row(label, val, sub) {
+      var sec = el('div', 'ai-sec');
+      sec.appendChild(el('div', 'ai-sec-label', label));
+      var v = el('div', 'ai-val', val);
+      v.style.whiteSpace = 'pre-wrap';
+      v.style.overflowWrap = 'anywhere';
+      sec.appendChild(v);
+      if (sub) sec.appendChild(el('div', 'ai-sub', sub));
+      body.appendChild(sec);
+    }
+    if (!has) {
+      body.appendChild(el('div', 'ai-val', '미입력'));
+      body.appendChild(el('div', 'ai-sub', '편집(연필)에서 입력할 수 있습니다'));
+    } else {
+      if (info.elevation.value != null) {
+        var ev = info.elevation.value, eu = info.elevation.unit;
+        row('표고', ev + ' ' + eu, '환산 ≈ ' + (eu === 'm' ? Math.round(ev * M_TO_FT) + ' ft' : Math.round(ev / M_TO_FT) + ' m'));
+      }
+      if (info.size) row('크기', info.size);
+      if (info.approach) row('접근방향', info.approach);
+      if (info.manager) row('관리주체', info.manager);
+      if (memo) row('비고', memo);
+      body.appendChild(el('div', 'ai-note', '참고용입니다. 운항 전 현장 상황을 확인하세요.'));
+    }
+    head.addEventListener('click', function () {
+      var open = head.getAttribute('aria-expanded') !== 'true';
+      head.setAttribute('aria-expanded', open ? 'true' : 'false');
+      body.hidden = !open;
+      sum.textContent = (has ? '입력됨' : '미입력') + (open ? ' ▾' : ' ▸');
+    });
+    box.appendChild(head);
+    box.appendChild(body);
+    wrap.appendChild(box);
+  }
+
+  /* ── 착륙장 정보 입력 폼 ── */
+  var alSiteBase = null; // 수정 시작 시점의 기존 siteInfo (SK/장외 외 종류로 저장할 때 그대로 보존)
+  var SITE_STR_IDS = ['size', 'approach', 'manager'];
+  function clearSiteForm() {
+    $id('al-si-elev').value = '';
+    $id('al-si-elev-unit').value = 'm';
+    $id('al-si-elev').classList.remove('ai-bad');
+    aiSetMsg($id('al-si-elev-err'), []);
+    SITE_STR_IDS.forEach(function (k) { $id('al-si-' + k).value = ''; aiSetMsg($id('al-si-' + k + '-err'), []); });
+  }
+  function fillSiteForm(info) {
+    clearSiteForm();
+    if (!info) return;
+    var n = normSiteInfo(info);
+    if (n.elevation.value != null) $id('al-si-elev').value = n.elevation.value;
+    $id('al-si-elev-unit').value = n.elevation.unit;
+    SITE_STR_IDS.forEach(function (k) { $id('al-si-' + k).value = n[k].slice(0, SITE_MAXLEN); });
+  }
+  // 입력 검사 + 오류 표시. 반환: { info(값이 하나도 없으면 null), errors }
+  function collectSiteForm() {
+    var errors = 0;
+    var eIn = $id('al-si-elev'), eTxt = eIn.value.trim(), val = null;
+    if (eTxt !== '') {
+      if (/^-?\d+(\.\d+)?$/.test(eTxt)) val = Number(eTxt); else errors++;
+    }
+    var eBad = eTxt !== '' && val === null;
+    eIn.classList.toggle('ai-bad', eBad);
+    aiSetMsg($id('al-si-elev-err'), eBad ? [{ text: '숫자만 입력하세요 (음수 가능)' }] : []);
+    var info = { elevation: { value: val, unit: $id('al-si-elev-unit').value === 'ft' ? 'ft' : 'm' } };
+    SITE_STR_IDS.forEach(function (k) {
+      var t = $id('al-si-' + k).value.trim();
+      info[k] = t;
+      aiSetMsg($id('al-si-' + k + '-err'), t.length >= SITE_MAXLEN ? [{ warn: true, text: '최대 ' + SITE_MAXLEN + '자까지 입력할 수 있습니다' }] : []);
+    });
+    return { info: siteInfoHasValue(normSiteInfo(info)) ? info : null, errors: errors };
+  }
+  function siteFormState() {
+    return [$id('al-si-elev').value, $id('al-si-elev-unit').value, $id('al-si-size').value, $id('al-si-approach').value, $id('al-si-manager').value];
+  }
+
   /* ── 공항 정보 입력 폼 (착륙장 폼, 종류가 airports일 때만 보임) ── */
   var alAirportBase = null; // 수정 시작 시점의 기존 airportInfo (종류가 airports가 아닐 때 그대로 보존하기 위함)
   var alSnapshot = '';
@@ -930,7 +1036,9 @@
     n.navaids.forEach(addNavRow);
   }
   function syncAirportSection() {
-    $id('al-airport-section').style.display = $id('al-kind').value === 'airports' ? '' : 'none';
+    var k = $id('al-kind').value;
+    $id('al-airport-section').style.display = k === 'airports' ? '' : 'none';
+    $id('al-site-section').style.display = SITE_KINDS.indexOf(k) >= 0 ? '' : 'none';
   }
 
   // 통신 주파수 한 줄 파싱: 구분자 공백/쉼표/줄바꿈, "MHz" 글자 제거. 형식에 맞지 않는 토큰은 bad에 모은다(추측 보정 없음).
@@ -1050,7 +1158,7 @@
       c: [].map.call(document.querySelectorAll('#al-ai-comm-list .ai-rowwrap'), function (w) { return [w.querySelector('.ai-comm-kind').value, w.querySelector('.ai-comm-freq').value]; }),
       n: [].map.call(document.querySelectorAll('#al-ai-nav-list .ai-rowwrap'), function (w) { return [w.querySelector('.ai-nav-type').value, w.querySelector('.ai-nav-freq').value]; })
     };
-    return JSON.stringify([$id('al-name').value, $id('al-kind').value, $id('al-lat').value, $id('al-lng').value, $id('al-memo').value, picked.icon, picked.color, alShowAip, ai]);
+    return JSON.stringify([$id('al-name').value, $id('al-kind').value, $id('al-lat').value, $id('al-lng').value, $id('al-memo').value, picked.icon, picked.color, alShowAip, ai, siteFormState()]);
   }
   function markLandingClean() { alSnapshot = snapLanding(); }
   // 취소/닫기/바깥 탭 공통 진입점: 값이 바뀌었으면 확인 후 닫는다
@@ -1312,6 +1420,7 @@
     }
 
     renderMarkerAirportInfo(kind, point);
+    renderMarkerSiteInfo(kind, point);
     updateMarkerAipLink(kind, point);
     updateMarkerRouteActions(point);
     openSheet('marker-sheet');
@@ -1341,6 +1450,8 @@
       syncAlShowAipUI();
       alAirportBase = point.airportInfo ? normAirportInfo(point.airportInfo) : null;
       fillAirportForm(point.airportInfo);
+      alSiteBase = point.siteInfo ? normSiteInfo(point.siteInfo) : null;
+      fillSiteForm(point.siteInfo);
       syncAirportSection();
       markLandingClean();
       $id('add-landing-sheet').querySelector('.sheet-title').textContent = '착륙장 수정';
@@ -1993,7 +2104,9 @@
     landingPicker.setValue(Icons.defaultIcon('offsite_landings'), Icons.defaultColor('offsite_landings'));
     syncAlShowAipUI();
     alAirportBase = null;
+    alSiteBase = null;
     clearAirportForm();
+    clearSiteForm();
     syncAirportSection();
     editingPoint = null;
     $id('add-landing-sheet').querySelector('.sheet-title').textContent = '착륙장 추가';
@@ -2058,6 +2171,19 @@
       if (airportInfoHasValue(normAirportInfo(res.info)) || alAirportBase) fields.airportInfo = res.info;
     } else if (alAirportBase) {
       fields.airportInfo = alAirportBase;
+    }
+    // siteInfo: SK/장외 종류면 폼 값을 통째로 저장(모두 비우면 null → 오버레이/클라우드에서 삭제), 그 외 종류는 기존 값을 그대로 보존
+    if (SITE_KINDS.indexOf(kind) >= 0) {
+      var sres = collectSiteForm();
+      if (sres.errors > 0) {
+        toast('착륙장 정보 입력을 확인하세요');
+        $id('al-si-elev').scrollIntoView({ block: 'center' });
+        return;
+      }
+      if (sres.info) fields.siteInfo = sres.info;
+      else if (alSiteBase && editingPoint && editingPoint.type === kind) fields.siteInfo = null;
+    } else if (alSiteBase) {
+      fields.siteInfo = alSiteBase;
     }
     var wasEditing = !!editingPoint;
     if (editingPoint) {
@@ -2372,6 +2498,7 @@
     $id('al-ai-rwy-add').addEventListener('click', function () { addRwyRow(); });
     $id('al-ai-comm-add').addEventListener('click', function () { addCommRow(); });
     $id('al-ai-nav-add').addEventListener('click', function () { addNavRow(); });
+    $id('al-site-section').addEventListener('input', function () { collectSiteForm(); });
     $id('al-airport-section').addEventListener('input', function (e) {
       var t = e.target;
       // 통신 주파수 입력칸은 입력 즉시 형식 검사, 나머지는 첫 저장 시도 이후부터 갱신

@@ -313,6 +313,7 @@
       </div>
     </div>
     <div id="marker-airport-info" class="ai-wrap" style="display:none"></div>
+    <div id="marker-site-info" class="ai-wrap" style="display:none"></div>
     <div class="related-title">관련 항법경로</div>
     <div class="related-select-wrap"><select class="form-select" id="related-routes"></select></div>
     <div class="sr-actions" id="marker-aip-actions" style="display:none"></div>
@@ -587,6 +588,32 @@
       <div class="form-group">
         <div class="form-label">메모</div>
         <textarea class="form-textarea" id="al-memo" placeholder="선택 입력"></textarea>
+      </div>
+      <div id="al-site-section" class="ai-form" style="display:none">
+        <div class="ai-form-title">착륙장 정보 입력</div>
+        <div class="form-group">
+          <div class="form-label">표고</div>
+          <div class="ai-row">
+            <input class="form-input" id="al-si-elev" placeholder="숫자 (음수 가능)" autocomplete="off">
+            <select class="form-select ai-unit" id="al-si-elev-unit"><option value="m">m</option><option value="ft">ft</option></select>
+          </div>
+          <div class="ai-err" id="al-si-elev-err"></div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">착륙장 크기</div>
+          <input class="form-input" id="al-si-size" maxlength="120" placeholder="가로 × 세로 m, 또는 지름" autocomplete="off">
+          <div class="ai-err warn" id="al-si-size-err"></div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">접근방향</div>
+          <input class="form-input" id="al-si-approach" maxlength="120" autocomplete="off">
+          <div class="ai-err warn" id="al-si-approach-err"></div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">관리주체</div>
+          <input class="form-input" id="al-si-manager" maxlength="120" placeholder="관리 기관, 담당자, 연락처" autocomplete="off">
+          <div class="ai-err warn" id="al-si-manager-err"></div>
+        </div>
       </div>
       <div id="al-airport-section" class="ai-form" style="display:none">
         <div class="ai-form-title">공항 정보 입력</div>
